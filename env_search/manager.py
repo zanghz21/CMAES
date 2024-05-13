@@ -17,15 +17,18 @@ from env_search.emitters import EvolutionStrategyEmitter, MapElitesBaselineWareh
 from env_search.schedulers import Scheduler
 from env_search.utils.logging import worker_log
 from env_search.utils.metric_logger import MetricLogger
-from env_search.warehouse.warehouse_manager import WarehouseManager
-from env_search.competition.competition_manager import CompetitionManager
+# from env_search.warehouse.warehouse_manager import WarehouseManager
+# from env_search.competition.competition_manager import CompetitionManager
+from env_search.traffic_mapf.traffic_mapf_manager import TrafficMAPFManager
+import wandb
 
 # Just to get rid of pylint warning about unused import (adding a comment after
 # each line above messes with formatting).
 IMPORTS_FOR_GIN = (
     GridArchive,
-    WarehouseManager,
-    CompetitionManager,
+    # WarehouseManager,
+    # CompetitionManager,
+    TrafficMAPFManager
 )
 
 EMITTERS_WITH_RESTARTS = (
@@ -464,6 +467,13 @@ class Manager:  # pylint: disable = too-many-instance-attributes
             total_restart_from_area,
             logger,
         )
+        if wandb.run is not None:
+            stats = {
+                "max": np.max(objs),
+                "mean": np.mean(objs), 
+                "min": np.min(objs)
+            }
+            wandb.log(stats)
 
     def extract_metadata(self, r) -> dict:
         """Constructs metadata object from results of an evaluation."""
@@ -784,6 +794,11 @@ class Manager:  # pylint: disable = too-many-instance-attributes
 
     def execute(self):
         """Runs the entire algorithm."""
+        run = wandb.init(
+            name="CMA-ES", 
+            project="TrafficMAPF", 
+            # mode="disabled"
+            )
         while not self.finished():
             self.msg_all(f"----- Outer Itr {self.outer_itrs_completed + 1} "
                          f"({self.total_evals} evals) -----")
@@ -821,3 +836,4 @@ class Manager:  # pylint: disable = too-many-instance-attributes
                      f"{self.total_evals} evals, "
                      f"Repair takes {repair_runtime} s, "
                      f"Sim takes {sim_runtime} s -----")
+        run.finish()

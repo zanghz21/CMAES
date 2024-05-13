@@ -15,7 +15,7 @@ import fire
 import logging
 import pathlib
 import warnings
-import py_driver  # type: ignore # ignore pylance warning
+# import py_driver  # type: ignore # ignore pylance warning
 import numpy as np
 import shutil
 import multiprocessing

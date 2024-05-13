@@ -5,8 +5,8 @@ fire==0.4.0
 gin-config==0.4.0
 logdir==0.13.0
 ribs[all]==0.5.0
-gym==0.18.0
-Pillow==7.2.0
+# gym==0.18.0
+# Pillow==7.2.0
 pandas==1.5.3
 networkx==3.1
 cma==3.3.0
@@ -34,6 +34,6 @@ opencv-python==4.7.0.72
 imageio==2.9.0
 moviepy==1.0.3
 
-gym-minigrid==1.0.1
+# gym-minigrid==1.0.1
 stable-baselines3==2.2.1
 scikit-image==0.19.2
