@@ -23,7 +23,7 @@ class TrafficMAPFManager:
                  bounds=None) -> None:
         
         self.iterative_update = True
-        self.update_model_n_params = 100 # TODO: move it to config and NN class
+        self.update_model_n_params = 2041 # TODO: move it to config and NN class
         
         self.logdir = logdir
         self.client = client

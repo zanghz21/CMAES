@@ -798,7 +798,7 @@ class Manager:  # pylint: disable = too-many-instance-attributes
             name="CMA-ES", 
             project="TrafficMAPF", 
             # mode="disabled"
-            )
+        )
         while not self.finished():
             self.msg_all(f"----- Outer Itr {self.outer_itrs_completed + 1} "
                          f"({self.total_evals} evals) -----")

@@ -36,7 +36,7 @@ USAGE="Usage: bash scripts/run_local.sh CONFIG SEED NUM_WORKERS [-p PROJECT_DIR]
 
 CONFIG=config/traffic_mapf/test.gin
 SEED=4
-NUM_WORKERS=64
+NUM_WORKERS=32
 PROJECT_DIR=/media/project0/hongzhi/TrafficFlowMAPF/CMAES
 
 export PYTHONPATH=$PROJECT_DIR:$PYTHONPATH

@@ -5,7 +5,6 @@ import warnings
 import subprocess
 
 import time
-import py_driver
 from env_search.traffic_mapf.config import TrafficMAPFConfig
 from env_search.traffic_mapf.result import TrafficMAPFResult
 from env_search.utils import MIN_SCORE
@@ -16,7 +15,10 @@ class TrafficMAPFModule:
         pass
         
     def evaluate(self, nn_weights: np.ndarray):
-        kwargs = {"network_params": json.dumps(nn_weights.tolist())}
+        nn_weights_list=nn_weights.tolist()
+        # print(nn_weights_list)
+        # raise NotImplementedError
+        kwargs = {"network_params": json.dumps(nn_weights_list)}
         delimiter = "[=====delimiter======]"
         output = subprocess.run(
                     [
@@ -39,6 +41,8 @@ print("{delimiter}")
         outputs = output.split(delimiter)
         if len(outputs) <= 2:
             print(output)
+            print("nn weights as follow")
+            print(nn_weights_list)
             raise NotImplementedError
         else:
             results_str = outputs[1].replace('\n', '').replace(
@@ -70,3 +74,6 @@ print("{delimiter}")
         if np.any(objs < 0):
             warnings.warn("Some objective values are still negative.")
         return np.sum(objs)
+
+if __name__ == "__main__":
+    py_driver.run()
