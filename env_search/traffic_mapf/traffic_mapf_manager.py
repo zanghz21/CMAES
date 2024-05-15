@@ -20,11 +20,21 @@ class TrafficMAPFManager:
                  client: Client, 
                  logdir: LogDir, 
                  rng: np.random.Generator=None, 
+                 net_type: str = None,
                  bounds=None) -> None:
         
         self.iterative_update = True
-        self.update_model_n_params = 2041 # TODO: move it to config and NN class
         
+        self.net_type = net_type
+        if net_type == "linear":
+            self.update_model_n_params = 100
+        elif net_type == "quad":
+            self.update_model_n_params = 140 # TODO: move it to config and NN class
+        elif net_type == "mlp":
+            self.update_model_n_params = 2041
+        else:
+            raise NotImplementedError
+            
         self.logdir = logdir
         self.client = client
         self.rng = rng or np.random.default_rng()
@@ -60,7 +70,8 @@ class TrafficMAPFManager:
         sim_futures = [
             self.client.submit(
                 run_traffic_mapf,
-                nn_weights=sol
+                nn_weights=sol, 
+                net_type=self.net_type, 
             ) for sol, seed in zip(iter_update_sols, evaluation_seeds)
         ]
         logger.info("Collecting evaluations")

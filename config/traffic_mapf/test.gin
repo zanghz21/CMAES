@@ -1,4 +1,4 @@
-experiment.name = "test trafficMAPF"
+experiment.name = "test trafficMAPF mlp"
 
 sigma0 = 5
 bounds = (0.1, 100)
@@ -19,6 +19,8 @@ Manager.reload_save_freq = 1
 Manager.plot_metrics_freq = 1
 Manager.bounds = %bounds
 Manager.initial_mean = 5
+
+TrafficMAPFManager.net_type = "mlp"
 
 ## GridArchive ##
 GridArchive.dims = [15, 100]

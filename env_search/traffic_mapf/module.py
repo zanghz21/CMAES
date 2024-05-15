@@ -14,11 +14,14 @@ class TrafficMAPFModule:
     def __init__(self, config: TrafficMAPFConfig):
         pass
         
-    def evaluate(self, nn_weights: np.ndarray):
+    def evaluate(self, nn_weights: np.ndarray, net_type: str):
         nn_weights_list=nn_weights.tolist()
         # print(nn_weights_list)
         # raise NotImplementedError
-        kwargs = {"network_params": json.dumps(nn_weights_list)}
+        kwargs = {
+            "net_type": net_type, 
+            "network_params": json.dumps(nn_weights_list)
+        }
         delimiter = "[=====delimiter======]"
         output = subprocess.run(
                     [

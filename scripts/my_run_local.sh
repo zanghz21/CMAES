@@ -35,7 +35,7 @@ print_thick_line() {
 USAGE="Usage: bash scripts/run_local.sh CONFIG SEED NUM_WORKERS [-p PROJECT_DIR] [-r RELOAD_PATH]"
 
 CONFIG=config/traffic_mapf/test.gin
-SEED=4
+SEED=6
 NUM_WORKERS=32
 PROJECT_DIR=/media/project0/hongzhi/TrafficFlowMAPF/CMAES
 
