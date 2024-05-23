@@ -1,5 +1,3 @@
-experiment.name = "test trafficMAPF mlp"
-
 sigma0 = 5
 bounds = (0.1, 100)
 # base_map_path = "maps/competition/human/pibt_random_unweight_32x32.json"
@@ -7,7 +5,7 @@ bounds = (0.1, 100)
 Manager.env_manager_class = @TrafficMAPFManager
 Manager.is_em = False
 Manager.is_cma_mae = False
-Manager.max_evals = 100000
+Manager.max_evals = 10000
 Manager.initial_sols = 100
 Manager.inner_itrs = 10_000
 Manager.archive_type = @GridArchive
@@ -20,7 +18,13 @@ Manager.plot_metrics_freq = 1
 Manager.bounds = %bounds
 Manager.initial_mean = 5
 
-TrafficMAPFManager.net_type = "mlp"
+TrafficMAPFManager.update_model_n_params = 560
+TrafficMAPFConfig.net_type = "quad"
+TrafficMAPFConfig.has_map = False
+TrafficMAPFConfig.has_path = False
+TrafficMAPFConfig.has_previous = False
+TrafficMAPFConfig.use_all_flow = True
+TrafficMAPFConfig.output_size = 4
 
 ## GridArchive ##
 GridArchive.dims = [15, 100]

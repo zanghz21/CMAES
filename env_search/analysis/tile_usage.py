@@ -275,16 +275,21 @@ def tile_usage_heatmap_from_qd(
             lb, ub = gin.query_parameter("%bounds")
             opt_edge_weights = min_max_normalize(opt_edge_weights, lb, ub)
             opt_wait_costs = min_max_normalize(opt_wait_costs, lb, ub)
+        elif domain == "trafficMAPF":
+            pass
         else:
             raise ValueError(f"Unknown domain: {domain}")
 
         # Write update model
-        if iterative_update:
+        if iterative_update or domain == "trafficMAPF":
             # Write optimal trained update model param
             opt_update_model_param = df.filter(
                 regex=("solution.*")).iloc[global_opt].to_list()
 
-            update_model_type = gin.query_parameter(
+            if domain == "trafficMAPF":
+                update_model_type = gin.query_parameter("TrafficMAPFConfig.net_type")
+            else:
+                update_model_type = gin.query_parameter(
                 "CompetitionConfig.iter_update_model_type")
 
             write_iter_update_model_to_json(
@@ -293,6 +298,8 @@ def tile_usage_heatmap_from_qd(
                 update_model_type,
             )
 
+        if domain == "trafficMAPF":
+            return
         # Write optimal weights
         global_opt_weights = [*opt_wait_costs, *opt_edge_weights]
         global_opt_weights = [float(x) for x in global_opt_weights]
@@ -315,48 +322,6 @@ def tile_usage_heatmap_from_qd(
             index_1_min,
             global_opt,
         ]]
-
-    # elif mode == "extreme-3D":
-    #     # In 3D case, we fix the third dimension and plot the "extreme" points
-    #     # in the archive in first/second dimensions
-    #     partial_df = df[df["behavior_2"] == 20]
-    #     index_0_max = partial_df["index_0"].idxmax()
-    #     index_0_min = partial_df["index_0"].idxmin()
-    #     index_1_max = partial_df["index_1"].idxmax()
-    #     index_1_min = partial_df["index_1"].idxmin()
-
-    #     # Add global optimal env
-    #     global_opt = partial_df["objective"].idxmax()
-    #     base_map_json = partial_df.iloc[global_opt]["metadata"][
-    #         "warehouse_metadata"]["map_str"]
-    #     to_plots = partial_df.loc[[
-    #         index_0_max,
-    #         index_0_min,
-    #         index_1_max,
-    #         index_1_min,
-    #         global_opt,
-    #     ]]
-    # elif mode == "compare_human":
-    #     selected_inds = df[(df["behavior_1"] == 20)]
-    #     to_plots = []
-    #     if not selected_inds.empty:
-    #         curr_opt_idx_20 = selected_inds["objective"].idxmax()
-    #         to_plots.append(df.iloc[curr_opt_idx_20])
-    #     else:
-    #         print("No map with 20 shelves in the archive!")
-    #     selected_inds = df[(df["behavior_1"] == 24)]
-    #     if not selected_inds.empty:
-    #         curr_opt_idx_24 = selected_inds["objective"].idxmax()
-    #         to_plots.append(df.iloc[curr_opt_idx_24])
-    #     else:
-    #         print("No map with 24 shelves in the archive!")
-
-    #     to_plots = pd.DataFrame(to_plots)
-
-    # if base_map_json is not None:
-    #     print("Global optima: ")
-    #     print("\n".join(base_map_json))
-    #     print()
 
     with mpl_style_file("tile_usage_heatmap.mplstyle") as f:
         with plt.style.context(f):
@@ -392,15 +357,6 @@ def tile_usage_heatmap_from_qd(
                     gridspec_kw=grid_kws,
                 )
 
-                # # Log unrepaired env
-                # unrepaired_env_int = metadata["map_int_unrepaired"]
-                # print("\n".join(kiva_env_number2str(unrepaired_env_int)))
-                # print()
-
-                # Plot repaired env
-                map_str = base_map_json["layout"]
-                # print("\n".join(map_str))
-                # print()
                 if domain == "kiva":
                     repaired_env = kiva_env_str2number(map_str)
                     visualize_kiva(repaired_env, ax=ax_map, dpi=300)

@@ -1,0 +1,5 @@
+include "config/traffic_mapf/base.gin"
+
+experiment.name = "trafficMAPF room"
+
+TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/room-64-64-8_3_1000.json"

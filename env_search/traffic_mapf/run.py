@@ -4,11 +4,10 @@ from env_search.utils.worker_state import get_traffic_mapf_module
 
 def run_traffic_mapf(
     nn_weights: np.ndarray, 
-    net_type: str
 ):
     traffic_mapf_module = get_traffic_mapf_module()
     result = traffic_mapf_module.evaluate(
-        nn_weights, net_type
+        nn_weights
     )
     return result
 

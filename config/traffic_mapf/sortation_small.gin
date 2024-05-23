@@ -1,0 +1,12 @@
+include "config/traffic_mapf/base.gin"
+
+experiment.name = "trafficMAPF sortation small quad"
+
+TrafficMAPFConfig.simu_time = 1000
+TrafficMAPFConfig.net_type = "minidnn_mlp"
+TrafficMAPFConfig.has_map = False
+TrafficMAPFConfig.has_path = False
+TrafficMAPFConfig.has_previous = False
+TrafficMAPFManager.update_model_n_params = 5254
+
+TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/sortation_small_0_600.json"
