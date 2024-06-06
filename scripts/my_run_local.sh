@@ -1,41 +1,8 @@
 #!/bin/bash
-# Runs experiments on a local computer.
-#
-# This script can have multiple instances running at once, though the instances
-# will need to have different seeds to prevent port conflicts.
-#
-# Usage:
-#   bash scripts/run_local.sh CONFIG SEED NUM_WORKERS [RELOAD_PATH]
-# Example:
-#   # 8 workers with configuration config/foo.gin and seed 1.
-#   bash scripts/run_local.sh config/foo.gin 1 8
-
-#   # 8 workers with configuration config/foo.gin and seed 1, and binding the
-#   `/project/` directory.
-#   bash scripts/run_local.sh config/foo.gin 1 8 -p /project
-#
-#   # 4 workers with configuration config/foo.gin and seed 2, and reloading from
-#   # old_dir/.
-#   bash scripts/run_local.sh config/foo.gin 2 4 old_dir/
-
-print_header() {
-  echo
-  echo "------------- $1 -------------"
-}
-
-# Prints "=" across an entire line.
-print_thick_line() {
-  printf "%0.s=" $(seq 1 `tput cols`)
-  echo
-}
-
-#
-# Parse command line flags.
-#
 USAGE="Usage: bash scripts/run_local.sh CONFIG SEED NUM_WORKERS [-p PROJECT_DIR] [-r RELOAD_PATH]"
 
-CONFIG=config/traffic_mapf/sortation_small.gin
-SEED=6
+CONFIG=config/traffic_mapf/sortation_60x100.gin
+SEED=5
 NUM_WORKERS=32
 PROJECT_DIR=/media/project0/hongzhi/TrafficFlowMAPF/CMAES
 

@@ -18,4 +18,4 @@ TrafficMAPFManager.update_model_n_params = 560
 
 Manager.max_evals = 20000
 
-TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/sortation_small_0_800.json"
+TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/sortation_small_narrow_800.json"

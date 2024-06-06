@@ -2,14 +2,14 @@
 
 USAGE="Usage: bash scripts/plot_tile_usage.sh LOGDIR MODE DOMAIN"
 
-LOGDIR="logs/2024-05-23_01-08-09_trafficmapf-sortation-small-quad_9JCyiXNf"
+LOGDIR="logs/2024-05-31_20-29-22_trafficmapf-sortation-60x100_2y5tPVFv"
 LOGDIR_TYPE="qd"
 MODE="extreme"
 DOMAIN="trafficMAPF"
 
 PROJECT_DIR=/media/project0/hongzhi/TrafficFlowMAPF/CMAES
 export PYTHONPATH=$PROJECT_DIR:$PYTHONPATH
-shift 4
+# shift 4
 while getopts "p:" flag; do
   case "$flag" in
       p) PROJECT_DIR=$OPTARG;;
