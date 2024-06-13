@@ -210,8 +210,10 @@ def tile_usage_heatmap_from_qd(
     logdir = load_experiment(logdir)
     gen = load_metrics(logdir).total_itrs if gen is None else gen
     archive = load_archive_gen(logdir, gen)
-    df = pd.read_pickle(logdir.file(f"archive/archive_{gen}.pkl"))
-    # df = pd.read_pickle(logdir.file(f"archive/archive_.pkl"))
+    try:
+        df = pd.read_pickle(logdir.file(f"archive/archive_{gen}.pkl"))
+    except FileNotFoundError:
+        df = pd.read_pickle(logdir.file(f"archive/archive_.pkl"))
     global_opt_weights = None
 
     # Convert index to index_0 and index_1 --> pyribs 0.4.0/0.5.0 compatibility

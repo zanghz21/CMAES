@@ -16,6 +16,7 @@ class Map:
         self.height = None
         self.width = None
         self.graph = None
+        self.full_graph = None
 
         self.load(self.fp)
 
@@ -28,6 +29,7 @@ class Map:
                 self.height = int(f.readline().split()[-1])
                 self.width = int(f.readline().split()[-1])
                 self.graph = np.zeros((self.height, self.width), dtype=np.int)
+                self.full_graph =  np.zeros((self.height, self.width), dtype=np.int)
                 # skip the map line
                 f.readline()
                 for row in range(self.height):
@@ -37,6 +39,14 @@ class Map:
                         # obstacle
                         if loc == "@" or loc == "T":
                             self.graph[row, col] = 1
+                            self.full_graph[row, col] = 1
+                        if loc == "E":
+                            self.full_graph[row, col] = 2
+                        if loc == "S":
+                            self.full_graph[row, col] = 3
+                        if loc == "W":
+                            self.full_graph[row, col] = 4
+                            
         elif fp.endswith(".grid"):
             raise NotImplementedError
         else:

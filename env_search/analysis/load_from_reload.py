@@ -1,5 +1,6 @@
 import os
 import pickle as pkl
+import argparse
 
 def load_archive_from_reload(logdir: str, is_em=False, is_cma_mae=True):
     with open(os.path.join(logdir, 'reload.pkl'), "rb") as file:
@@ -17,9 +18,14 @@ def load_archive_from_reload(logdir: str, is_em=False, is_cma_mae=True):
                 result_archive = None
         return archive, result_archive
     
-logdir='logs/2024-05-27_19-43-47_trafficmapf-sortation-small-linear_CtCaYD5W'
-archive, result_archive = load_archive_from_reload(logdir)
-df = archive.as_pandas(include_solutions=True, include_metadata=True)
 
-os.makedirs(os.path.join(logdir, 'archive'), exist_ok=True)
-df.to_pickle(os.path.join(logdir, f"archive/archive_.pkl"))
+if __name__ == "__main__":
+    p = argparse.ArgumentParser()
+    p.add_argument("--logdir", type=str, required=True)
+    args = p.parse_args()
+    logdir = args.logdir
+    archive, result_archive = load_archive_from_reload(logdir)
+    df = archive.as_pandas(include_solutions=True, include_metadata=True)
+
+    os.makedirs(os.path.join(logdir, 'archive'), exist_ok=True)
+    df.to_pickle(os.path.join(logdir, f"archive/archive_.pkl"))

@@ -1,8 +1,9 @@
 #!/bin/bash
 USAGE="Usage: bash scripts/run_local.sh CONFIG SEED NUM_WORKERS [-p PROJECT_DIR] [-r RELOAD_PATH]"
 
-CONFIG=config/traffic_mapf/sortation_60x100.gin
-SEED=5
+CONFIG=config/traffic_mapf/sortation_small_narrow.gin
+# CONFIG=config/traffic_mapf/ggo_33x36.gin
+SEED=9
 NUM_WORKERS=32
 PROJECT_DIR=/media/project0/hongzhi/TrafficFlowMAPF/CMAES
 

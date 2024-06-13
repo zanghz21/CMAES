@@ -25,10 +25,9 @@ def generate_hash_file_path():
 class TrafficMAPFModule:
     def __init__(self, config: TrafficMAPFConfig):
         self.config = config
-        
-    def evaluate(self, nn_weights: np.ndarray, save_in_disk=True):
-        nn_weights_list=nn_weights.tolist()
-        
+        self.rng = np.random.default_rng(seed=self.config.seed)
+    
+    def gen_sim_kwargs(self, nn_weights_list):
         kwargs = {
             "simu_time": self.config.simu_time, 
             "map_path": self.config.map_path, 
@@ -38,8 +37,25 @@ class TrafficMAPFModule:
             "use_all_flow": self.config.use_all_flow, 
             "output_size": self.config.output_size, 
             "net_type": self.config.net_type, 
-            "network_params": json.dumps(nn_weights_list)
+            "network_params": json.dumps(nn_weights_list), 
+            "gen_tasks": self.config.gen_tasks,  
+            "num_agents": self.config.num_agents, 
+            "num_tasks": self.config.num_tasks, 
+            "task_assignment_strategy": self.config.task_assignment_strategy, 
+            "use_cached_nn": self.config.use_cached_nn
         }
+        if not self.config.gen_tasks:
+            assert self.config.all_json_path is not None
+            kwargs["gen_tasks"] = False
+            kwargs["all_json_path"] = self.config.all_json_path
+        return kwargs
+        
+        
+    def evaluate(self, nn_weights: np.ndarray, save_in_disk=True):
+        nn_weights_list=nn_weights.tolist()
+        kwargs = self.gen_sim_kwargs(nn_weights_list)
+        kwargs["seed"] = int(self.rng.integers(100000))
+        
         delimiter = "[=====delimiter======]"
         if save_in_disk:
             file_path = generate_hash_file_path()
@@ -57,11 +73,14 @@ file_path='{file_path}'
 with open(file_path, 'r') as f:
     kwargs_ = json.load(f)
 
-one_sim_result_jsonstr = py_driver.run(**kwargs_)
-result_json = json.loads(one_sim_result_jsonstr)
+results = []
+for _ in range({self.config.n_sim}):
+    one_sim_result_jsonstr = py_driver.run(**kwargs_)
+    result_json = json.loads(one_sim_result_jsonstr)
+    results.append(result_json)
 
 print("{delimiter}")
-print(result_json)
+print(results)
 print("{delimiter}")
 
                 """], stdout=subprocess.PIPE).stdout.decode('utf-8')
@@ -76,11 +95,14 @@ import py_driver
 import json
 
 kwargs_ = {kwargs}
-one_sim_result_jsonstr = py_driver.run(**kwargs_)
-result_json = json.loads(one_sim_result_jsonstr)
+results = []
+for _ in range({self.config.n_sim}):
+    one_sim_result_jsonstr = py_driver.run(**kwargs_)
+    result_json = json.loads(one_sim_result_jsonstr)
+    results.append(result_json)
 np.set_printoptions(threshold=np.inf)
 print("{delimiter}")
-print(result_json)
+print(results)
 print("{delimiter}")
             """], stdout=subprocess.PIPE).stdout.decode('utf-8')
         
@@ -97,8 +119,11 @@ print("{delimiter}")
             # print(collected_results_str)
             results = eval(results_str)
 
+        collect_results = {}
+        for k in results[0].keys():
+            collect_results[k] = np.mean([r[k] for r in results]) 
         gc.collect()
-        return results
+        return collect_results
     
     def process_eval_result(self, curr_result_json):
         throughput = curr_result_json.get("throughput")

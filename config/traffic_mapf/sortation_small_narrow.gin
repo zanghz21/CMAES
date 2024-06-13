@@ -1,14 +1,19 @@
 include "config/traffic_mapf/base.gin"
 
-experiment.name = "trafficMAPF sortation small linear"
+experiment.name = "trafficMAPF sortation small narrow"
 
 TrafficMAPFConfig.simu_time = 1000
+TrafficMAPFConfig.n_sim = 1
+
 TrafficMAPFConfig.has_map = False
 TrafficMAPFConfig.has_path = False
 TrafficMAPFConfig.has_previous = False
 
+TrafficMAPFConfig.num_agents = 800
 # TrafficMAPFConfig.net_type = "linear"
 # TrafficMAPFManager.update_model_n_params = 400
+
+TrafficMAPFManager.n_evals = 5
 
 TrafficMAPFConfig.net_type = "quad"
 TrafficMAPFManager.update_model_n_params = 560
@@ -18,4 +23,7 @@ TrafficMAPFManager.update_model_n_params = 560
 
 Manager.max_evals = 20000
 
-TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/sortation_small_narrow_800.json"
+TrafficMAPFConfig.gen_tasks = True
+TrafficMAPFConfig.use_cached_nn = True
+# TrafficMAPFConfig.all_json_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/sortation_small_narrow_800.json"
+TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/sortation_small_narrow.map"

@@ -21,9 +21,11 @@ class TrafficMAPFManager:
                  logdir: LogDir, 
                  rng: np.random.Generator=None, 
                  update_model_n_params: int = -1, 
+                 n_evals: int = gin.REQUIRED, 
                  bounds=None) -> None:
         
         self.iterative_update = True
+        self.n_evals = n_evals
         
         self.update_model_n_params = update_model_n_params
             
@@ -52,35 +54,44 @@ class TrafficMAPFManager:
         n_sols = len(unrepaired_sols)
         assert self.iterative_update
         
-        iter_update_sols = unrepaired_sols
         evaluation_seeds = self.rng.integers(np.iinfo(np.int32).max / 2,
-                                                size=len(iter_update_sols),
+                                                size=n_sols,
                                                 endpoint=True)
         eval_logdir = self.logdir.pdir(
             f"evaluations/eval_batch_{batch_idx}")
+    
+        iter_update_sols = [sol for sol in unrepaired_sols for _ in range(self.n_evals)]
+                    
         sim_start_time = time.time()
         sim_futures = [
             self.client.submit(
                 run_traffic_mapf,
                 nn_weights=sol, 
-            ) for sol, seed in zip(iter_update_sols, evaluation_seeds)
+            ) for sol in iter_update_sols
         ]
         logger.info("Collecting evaluations")
         results = self.client.gather(sim_futures)
         self.sim_runtime += time.time() - sim_start_time
         
-        results_json = []
+        # results_json = []
+        # for i in range(n_sols):
+        #     result_json = results[i]
+        #     results_json.append(result_json)
+        
+        results_json_sorted = []
         for i in range(n_sols):
-            result_json = results[i]
-            results_json.append(result_json)
+            curr_eval_results = []
+            for j in range(self.n_evals):
+                curr_eval_results.append(results[i * self.n_evals + j])
+            results_json_sorted.append(curr_eval_results)
 
         logger.info("Processing eval results")
 
         process_futures = [
             self.client.submit(
                 process_traffic_mapf_results,
-                curr_result_json=curr_result_json
-            ) for curr_result_json in results_json
+                curr_result_jsons=curr_result_jsons
+            ) for curr_result_jsons in results_json_sorted
         ]
         results = self.client.gather(process_futures)
         return results

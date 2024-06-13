@@ -1,5 +1,5 @@
 PROJECT_DIR=/media/project0/hongzhi/TrafficFlowMAPF/CMAES
 export PYTHONPATH=$PROJECT_DIR:$PYTHONPATH
 
-LOGDIR=logs/2024-05-27_11-05-13_trafficmapf-sortation-small-quad_XcK3cpBa
+LOGDIR=logs/2024-06-10_10-39-13_trafficmapf-33x36_DJrApRxd
 python env_search/analysis/load_from_reload.py --logdir=$LOGDIR

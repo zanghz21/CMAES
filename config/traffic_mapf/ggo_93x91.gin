@@ -7,7 +7,7 @@ TrafficMAPFConfig.has_map = False
 TrafficMAPFConfig.has_path = False
 TrafficMAPFConfig.has_previous = False
 
-TrafficMAPFConfig.num_agents = 800
+TrafficMAPFConfig.num_agents = 3500
 # TrafficMAPFConfig.net_type = "linear"
 # TrafficMAPFManager.update_model_n_params = 400
 
@@ -21,5 +21,4 @@ Manager.max_evals = 20000
 
 TrafficMAPFConfig.gen_tasks = True
 TrafficMAPFConfig.use_cached_nn = False
-# TrafficMAPFConfig.all_json_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/sortation_small_0_800.json"
-TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/sortation_small.map"
+TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/ggo_maps/93x91.map"
