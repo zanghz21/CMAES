@@ -26,11 +26,18 @@ class TrafficMAPFModule:
     def __init__(self, config: TrafficMAPFConfig):
         self.config = config
         self.rng = np.random.default_rng(seed=self.config.seed)
+        self.check_cfg()
+    
+    def check_cfg(self):
+        if self.config.rotate_input:
+            assert (self.config.output_size == 1)
     
     def gen_sim_kwargs(self, nn_weights_list):
         kwargs = {
             "simu_time": self.config.simu_time, 
             "map_path": self.config.map_path, 
+            "win_r": self.config.win_r, 
+            "rotate_input": self.config.rotate_input, 
             "has_map": self.config.has_map, 
             "has_path": self.config.has_path, 
             "has_previous": self.config.has_previous,
@@ -41,6 +48,7 @@ class TrafficMAPFModule:
             "gen_tasks": self.config.gen_tasks,  
             "num_agents": self.config.num_agents, 
             "num_tasks": self.config.num_tasks, 
+            "hidden_size": self.config.hidden_size, 
             "task_assignment_strategy": self.config.task_assignment_strategy, 
             "use_cached_nn": self.config.use_cached_nn
         }
@@ -61,7 +69,7 @@ class TrafficMAPFModule:
             file_path = generate_hash_file_path()
             with open(file_path, 'w') as f:
                 json.dump(kwargs, f)
-            output = subprocess.run(
+            run_results = subprocess.run(
                     [
                         'python', '-c', f"""\
 import numpy as np
@@ -83,13 +91,13 @@ print("{delimiter}")
 print(results)
 print("{delimiter}")
 
-                """], stdout=subprocess.PIPE).stdout.decode('utf-8')
+                """], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             if os.path.exists(file_path):
                 os.remove(file_path)
             else:
                 raise NotImplementedError
         else:
-            output = subprocess.run(['python', '-c', f"""\
+            run_results = subprocess.run(['python', '-c', f"""\
 import numpy as np
 import py_driver
 import json
@@ -106,12 +114,19 @@ print(results)
 print("{delimiter}")
             """], stdout=subprocess.PIPE).stdout.decode('utf-8')
         
+        output = run_results.stdout.decode('utf-8')
+        stderr_msg = run_results.stderr.decode('utf-8')
         # process output
         outputs = output.split(delimiter)
         if len(outputs) <= 2:
+            print("==== run stdout ====")
             print(output)
-            # print("nn weights as follow")
-            # print(nn_weights_list)
+            print("==== run stderr ====")
+            print(stderr_msg)
+            print("==== nn weights as follow ====")
+            print(nn_weights_list)
+            with open("debug_net.log", 'w') as f:
+                json.dump(nn_weights_list, f)
             raise NotImplementedError
         else:
             results_str = outputs[1].replace('\n', '').replace(

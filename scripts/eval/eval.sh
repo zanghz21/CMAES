@@ -19,5 +19,8 @@ export PYTHONPATH=$PROJECT_DIR:$PYTHONPATH
 LOGDIR=logs/2024-06-11_10-41-43_trafficmapf-sortation-small-narrow_htsMJDwh # nn cache, retry
 # LOGDIR=logs/2024-06-10_10-39-13_trafficmapf-33x36_DJrApRxd # GGO, sim10
 # LOGDIR=logs/2024-06-12_12-15-57_trafficmapf-sortation-small-narrow_h2dFuP5r # nn cache, multiple eval
-LOGDIR=logs/2024-06-12_12-16-39_trafficmapf-sortation-small-narrow_GH3b8NXa
+# LOGDIR=logs/2024-06-12_12-16-39_trafficmapf-sortation-small-narrow_GH3b8NXa # nn cache
+LOGDIR=logs/2024-06-13_19-07-26_trafficmapf-sortation-small-narrow_v7e54NWb # win_r=1
+LOGDIR=logs/2024-06-14_19-44-27_trafficmapf-win-r_sGdmyEH8 # win_r=1, again
+LOGDIR=logs/2024-06-15_10-08-50_trafficmapf-win-r_4rCLKFHQ # win_r=0
 python env_search/traffic_mapf/eval.py --logdir=$LOGDIR

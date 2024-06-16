@@ -2,7 +2,7 @@
 
 USAGE="Usage: bash scripts/plot_tile_usage.sh LOGDIR MODE DOMAIN"
 
-LOGDIR="logs/2024-06-12_12-16-39_trafficmapf-sortation-small-narrow_GH3b8NXa"
+LOGDIR="logs/2024-06-15_10-08-50_trafficmapf-win-r_4rCLKFHQ"
 LOGDIR_TYPE="qd"
 MODE="extreme"
 DOMAIN="trafficMAPF"

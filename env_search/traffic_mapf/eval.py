@@ -86,9 +86,11 @@ def experiments(base_kwargs, save_dir, save_suffix):
     # base_kwargs["num_tasks"] = 100000
     # base_kwargs["seed"] = np.random.randint(1000)
     # for i in range(10):
-    #     result_json_s = py_driver.run(**base_kwargs)
-    #     # print("sim_time = ", time.time()-t)
-    #     print(result_json_s)
+    print(base_kwargs["map_path"])
+    result_json_s = py_driver.run(**base_kwargs)
+    # print("sim_time = ", time.time()-t)
+    print(result_json_s)
+    # raise NotImplementedError
     
     # ggo_experiments(base_kwargs, save_dir)
     sortation_medium_experiemnts(base_kwargs, save_dir, save_suffix)

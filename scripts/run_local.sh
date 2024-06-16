@@ -82,7 +82,7 @@ SCHEDULER_PORT=$((8786 + 10 + $SEED))
 
 print_header "Starting Dask scheduler on port $SCHEDULER_PORT"
 # shellcheck disable=SC2086
-singularity exec ${SINGULARITY_OPTS} singularity/ubuntu_warehouse.sif \
+singularity exec ${SINGULARITY_OPTS} ../singularity/ubuntu_warehouse.sif \
   dask-scheduler \
     --port $SCHEDULER_PORT \
     --scheduler-file $SCHEDULER_FILE &
@@ -91,7 +91,7 @@ sleep 2 # Wait for scheduler to start.
 
 print_header "Starting Dask workers"
 # shellcheck disable=SC2086
-singularity exec ${SINGULARITY_OPTS} --nv singularity/ubuntu_warehouse.sif \
+singularity exec ${SINGULARITY_OPTS} --nv ../singularity/ubuntu_warehouse.sif \
   dask-worker \
     --memory-limit="4 GiB" \
     --scheduler-file $SCHEDULER_FILE \
@@ -104,7 +104,7 @@ print_header "Running experiment"
 echo
 print_thick_line
 # shellcheck disable=SC2086
-singularity exec ${SINGULARITY_OPTS} --nv singularity/ubuntu_warehouse.sif \
+singularity exec ${SINGULARITY_OPTS} --nv ../singularity/ubuntu_warehouse.sif \
   python env_search/main.py \
     --config "$CONFIG" \
     --address "127.0.0.1:$SCHEDULER_PORT" \

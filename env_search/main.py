@@ -20,6 +20,7 @@ from dask import config as cfg
 cfg.set({'distributed.scheduler.worker-ttl': None})
 cfg.set({'distributed.comm.timeouts.connect': '7200s'})
 cfg.set({'distributed.comm.timeouts.tcp': '7200s'})
+cfg.set({"distributed.admin.tick.limit": "3h"})
 
 
 def setup_logdir(seed: int,
@@ -114,6 +115,9 @@ def main(
     gin.parse_config_file(config)
     check_env()
 
+    dask.config.get("distributed.admin")
+    print(dask.config.get("distributed.admin"))
+    
     # Set up logdir
     logdir = setup_logdir(seed, slurm_logdir, reload, logdir_root)
 

@@ -2,4 +2,22 @@ include "config/traffic_mapf/base.gin"
 
 experiment.name = "trafficMAPF room"
 
+TrafficMAPFConfig.simu_time = 1000
+TrafficMAPFConfig.n_sim = 1
+
+TrafficMAPFConfig.has_map = False
+TrafficMAPFConfig.has_path = False
+TrafficMAPFConfig.has_previous = False
+
+TrafficMAPFConfig.num_agents = 1500
+
+TrafficMAPFManager.n_evals = 5
+
+TrafficMAPFConfig.win_r = 1
+TrafficMAPFConfig.net_type = "quad"
+TrafficMAPFManager.update_model_n_params = 192
+
+Manager.max_evals = 20000
+
+TrafficMAPFConfig.gen_tasks = True
 TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/room-64-64-8_3_1000.json"

@@ -37,3 +37,5 @@ moviepy==1.0.3
 # gym-minigrid==1.0.1
 stable-baselines3==2.2.1
 scikit-image==0.19.2
+
+wandb==0.17.0

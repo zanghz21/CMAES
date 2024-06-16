@@ -10,11 +10,14 @@ class TrafficMAPFConfig:
     n_sim: int = 1
     
     # network cfg
+    rotate_input: bool = False
+    win_r: int = 2
     has_map: bool = False
     has_path: bool = False
     has_previous: bool = False
     use_all_flow: bool = True
     output_size: int = 4
+    hidden_size: int = 50
     net_type: str = "quad"
     use_cached_nn: bool = False
     
