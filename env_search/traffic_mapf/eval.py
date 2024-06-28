@@ -12,6 +12,19 @@ from matplotlib.colors import LinearSegmentedColormap
 import argparse
 import logging
 from env_search.traffic_mapf.utils import get_map_name
+from datetime import datetime
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    handlers=[
+                        logging.StreamHandler()          # Log to console
+                    ])
+
+def get_time_str():
+    now = datetime.now()
+    time_str = now.strftime('%Y%m%d_%H%M%S')
+    return time_str
+
 
 def get_eval_log_save_path(save_dir, map_path, suffix=None):
     map_name = get_map_name(map_path)
@@ -59,7 +72,34 @@ def ggo_experiments(base_kwargs, save_dir):
     # for log in logs:
     #     print(log)
 
+def sortation_small_experiemnts(base_kwargs, save_dir, save_suffix):    
+    for ag in [200, 400, 600, 800, 1000, 1200, 1400]:
+        for i in range(1, 6):
+            all_json_path = f"../Guided-PIBT/guided-pibt/benchmark-lifelong/sortation_small_{i}_{ag}.json"
+            
+            base_kwargs["all_json_path"] = all_json_path
+            base_kwargs["gen_tasks"] = False
+            base_kwargs["save_path"] = get_eval_log_save_path(save_dir, all_json_path, suffix=save_suffix)
+
+            t = time.time()
+            result_json_s = py_driver.run(**base_kwargs)
+            print("sim_time = ", time.time()-t)
+            print(result_json_s)
+
+
 def sortation_medium_experiemnts(base_kwargs, save_dir, save_suffix):
+    # with open('debug_net.log', 'r') as f:
+    #     net_weights = json.load(f)
+    # base_kwargs["network_params"] = json.dumps(net_weights)
+    
+    logger = logging.getLogger("sortation_medium")
+    time_str = get_time_str()
+    file_handler = logging.FileHandler(os.path.join(save_dir, f'sortation_medium_{time_str}.log'))
+    file_handler.setLevel(logging.INFO)
+    logger.addHandler(file_handler)
+    
+    logger.info("start sortation medium experiments!")
+    
     for ag in [2000, 6000, 10000, 14000, 18000]:
     # # # for ag in [1200, 1800, 2400, 3000, 3600]:
     # #     #     map_path = f"../Guided-PIBT/guided-pibt/benchmark-lifelong/sortation_60x100_{ag}.json"
@@ -72,9 +112,83 @@ def sortation_medium_experiemnts(base_kwargs, save_dir, save_suffix):
 
             t = time.time()
             result_json_s = py_driver.run(**base_kwargs)
-            print("sim_time = ", time.time()-t)
+            sim_time = time.time()-t
+            print(f"exp={i}, ag={ag}, sim_time = ", sim_time)
             print(result_json_s)
+            result_json = json.loads(result_json_s)
+            tp = result_json["throughput"]
+            logger.info(f"agent_num={ag}, exp={i}, tp={tp}, sim_time={sim_time}")
+
+def game_small_experiments(base_kwargs):
+    base_kwargs["gen_tasks"] = True
+    base_kwargs["map_path"] = '../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/ost003d_downsample_repaired.map'
+    for ag in [500, 1000, 1500, 2000, 2500, 3000]:
+        for i in range(5):
+            base_kwargs["num_agents"] = ag
+            t = time.time()
+            result_json_s = py_driver.run(**base_kwargs)
+            print(f"exp={i}, ag={ag}, sim_time = ", time.time()-t)
+            print(result_json_s)
+            
+            
+def game_experiments(base_kwargs, save_dir, save_suffix):
+    logger = logging.getLogger("game")
+    time_str = get_time_str()
+    file_handler = logging.FileHandler(f'eval_logs/game_{time_str}.log')
+    file_handler.setLevel(logging.INFO)
+    logger.addHandler(file_handler)
     
+    logger.info("start game experiments!")
+    
+    base_kwargs["gen_tasks"] = False
+    for ag in [2000, 4000, 6000, 8000, 10000]:
+        for i in range(1, 6):
+            all_json_path = f"../Guided-PIBT/guided-pibt/benchmark-lifelong/ost003d_{i}_{ag}.json"
+            base_kwargs["all_json_path"] = all_json_path
+            base_kwargs["save_path"] = get_eval_log_save_path(save_dir, all_json_path)
+            t = time.time()
+            result_json_s = py_driver.run(**base_kwargs)
+            sim_time = time.time()-t
+            result_json = json.loads(result_json_s)
+            tp = result_json["throughput"]
+            logger.info(f"agent_num={ag}, exp={i}, tp={tp}, sim_time={sim_time}")
+            
+
+def warehouse_small_experiments(base_kwargs):
+    base_kwargs["gen_tasks"] = True
+    base_kwargs["map_path"] = '../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/warehouse_small.map'
+    for ag in [400, 600, 800, 1000, 1200]:
+        for i in range(5):
+            base_kwargs["num_agents"] = ag
+            t = time.time()
+            result_json_s = py_driver.run(**base_kwargs)
+            print(f"exp={i}, ag={ag}, sim_time = ", time.time()-t)
+            print(result_json_s)
+
+
+def warehouse_large_experiments(base_kwargs, save_dir):
+    logger = logging.getLogger("warehouse_large")
+    time_str = get_time_str()
+    file_handler = logging.FileHandler(os.path.join(save_dir, f'warehouse_large_{time_str}.log'))
+    file_handler.setLevel(logging.INFO)
+    logger.addHandler(file_handler)
+    
+    logger.info("start warehouse large experiments!")
+    
+    base_kwargs["gen_tasks"] = False
+    # for ag in [2000, 4000, 6000, 8000, 10000, 12000]:
+    for ag in [8000]:
+        for i in range(5):
+            base_kwargs["all_json_path"] = f"../Guided-PIBT/guided-pibt/benchmark-lifelong/warehouse_large_{i}_{ag}.json"
+            t = time.time()
+            result_json_s = py_driver.run(**base_kwargs)
+            sim_time = time.time()-t
+            print(f"exp={i}, ag={ag}, sim_time = ", sim_time)
+            print(result_json_s)
+            result_json = json.loads(result_json_s)
+            tp = result_json["throughput"]
+            logger.info(f"agent_num={ag}, exp={i}, tp={tp}, sim_time={sim_time}")
+
     
 def experiments(base_kwargs, save_dir, save_suffix):
     t = time.time()
@@ -86,15 +200,17 @@ def experiments(base_kwargs, save_dir, save_suffix):
     # base_kwargs["num_tasks"] = 100000
     # base_kwargs["seed"] = np.random.randint(1000)
     # for i in range(10):
-    print(base_kwargs["map_path"])
-    result_json_s = py_driver.run(**base_kwargs)
+    # print(base_kwargs["map_path"])
+    # result_json_s = py_driver.run(**base_kwargs)
     # print("sim_time = ", time.time()-t)
-    print(result_json_s)
+    # print(result_json_s)
     # raise NotImplementedError
     
     # ggo_experiments(base_kwargs, save_dir)
-    sortation_medium_experiemnts(base_kwargs, save_dir, save_suffix)
-    
+    # sortation_medium_experiemnts(base_kwargs, save_dir, save_suffix)
+    # game_experiments(base_kwargs, save_dir, save_suffix)
+    # warehouse_small_experiments(base_kwargs)
+    warehouse_large_experiments(base_kwargs, save_dir)
     
 def main(log_dir, vis=False, suffix="gen_t"):
     net_file = os.path.join(log_dir, "optimal_update_model.json")

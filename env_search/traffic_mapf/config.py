@@ -20,6 +20,8 @@ class TrafficMAPFConfig:
     hidden_size: int = 50
     net_type: str = "quad"
     use_cached_nn: bool = False
+    default_obst_flow: float = 0.0
+    learn_obst_flow: bool = False
     
     # sim cfg
     gen_tasks: bool = True
