@@ -39,6 +39,7 @@ from env_search.utils import (MIN_SCORE, competition_obj_types,
                               single_sim_done, get_project_dir)
 from env_search.utils.logging import get_current_time_str
 from env_search.iterative_update import CompetitionIterUpdateEnv
+from env_search.iterative_update.envs.online_env import CompetitionOnlineEnv
 from env_search.competition.update_model import CompetitionBaseUpdateModel, CompetitionCNNUpdateModel
 from env_search.competition.update_model.utils import (
     Map, comp_uncompress_edge_matrix, comp_uncompress_vertex_matrix,
@@ -59,7 +60,7 @@ class CompetitionModule:
         save_in_disk=True,
     ):
         if not manually_clean_memory:
-            one_sim_result_jsonstr = py_driver.run(**kwargs)
+            one_sim_result_jsonstr = wppl_py_driver.run(**kwargs)
             result_json = json.loads(one_sim_result_jsonstr)
             return result_json
         else:
@@ -80,7 +81,7 @@ class CompetitionModule:
                     [
                         'python', '-c', f"""\
 import numpy as np
-import py_driver
+from simulators.wppl import py_driver as wppl_py_driver
 import json
 import time
 
@@ -88,7 +89,7 @@ file_path='{file_path}'
 with open(file_path, 'r') as f:
     kwargs_ = json.load(f)
 
-one_sim_result_jsonstr = py_driver.run(**kwargs_)
+one_sim_result_jsonstr = wppl_py_driver.run(**kwargs_)
 result_json = json.loads(one_sim_result_jsonstr)
 
 print("{delimiter1}")
@@ -111,11 +112,11 @@ print("{delimiter1}")
                     [
                         'python', '-c', f"""\
 import numpy as np
-import py_driver
+from simulators.wppl import py_driver as wppl_py_driver
 import json
 
 kwargs_ = {kwargs}
-one_sim_result_jsonstr = py_driver.run(**kwargs_)
+one_sim_result_jsonstr = wppl_py_driver.run(**kwargs_)
 result_json = json.loads(one_sim_result_jsonstr)
 np.set_printoptions(threshold=np.inf)
 print("{delimiter1}")
@@ -144,6 +145,7 @@ print("{delimiter1}")
                     'array', 'np.array')
                 # print(collected_results_str)
                 results = eval(results_str)
+            results = {k: v for k, v in results.items() if k not in ["final_pos", "final_tasks"]}
 
             gc.collect()
             return results
@@ -276,6 +278,71 @@ print("{delimiter1}")
 
         return curr_result, np.concatenate([curr_wait_costs, curr_edge_weights])
 
+
+    def evaluate_online_update(
+        self,
+        model_params: List,
+        eval_logdir: str,
+        n_valid_edges: int,
+        n_valid_vertices: int,
+        seed: int,
+    ):
+        """Run PIU
+
+        Args:
+            model_params (List): parameters of the update model
+            eval_logdir (str): log dir
+            n_valid_edges (int): number of valid edges
+            n_valid_vertices (int): number of valid vertices
+            seed (int): random seed
+        """
+        iter_update_env = CompetitionOnlineEnv(
+            n_valid_vertices=n_valid_vertices,
+            n_valid_edges=n_valid_edges,
+            config=self.config,
+            seed=seed
+        )
+        comp_map = Map(self.config.map_path)
+        update_mdl_kwargs = {}
+        if self.config.iter_update_mdl_kwargs is not None:
+            update_mdl_kwargs = self.config.iter_update_mdl_kwargs
+        update_model: CompetitionBaseUpdateModel = \
+            self.config.iter_update_model_type(
+                comp_map,
+                model_params,
+                n_valid_vertices,
+                n_valid_edges,
+                **update_mdl_kwargs,
+            )
+        obs, info = iter_update_env.reset()
+        done = False
+        while not done:
+            edge_usage_matrix = np.moveaxis(obs[:4], 0, 2)
+            wait_usage_matrix = obs[4]
+            curr_edge_weights_matrix = np.moveaxis(obs[5:9], 0, 2)
+            curr_wait_costs_matrix = obs[9]
+
+            # Get update value
+            wait_cost_update_vals, edge_weight_update_vals = \
+                update_model.get_update_values(
+                    wait_usage_matrix,
+                    edge_usage_matrix,
+                    curr_wait_costs_matrix,
+                    curr_edge_weights_matrix,
+                )
+
+            # Perform update
+            obs, imp_throughput, done, _, info = iter_update_env.step(
+                np.concatenate([wait_cost_update_vals,
+                                edge_weight_update_vals]))
+
+        curr_result = info["result"]
+        curr_wait_costs = info["curr_wait_costs"]
+        curr_edge_weights = info["curr_edge_weights"]
+
+        return curr_result, np.concatenate([curr_wait_costs, curr_edge_weights])
+    
+    
     def process_eval_result(
         self,
         edge_weights,

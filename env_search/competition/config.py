@@ -50,6 +50,7 @@ class CompetitionConfig:
     simulation_time: int = gin.REQUIRED
     map_path: str = gin.REQUIRED
     num_agents: int = gin.REQUIRED
+    update_interval: int = 100
     plan_time_limit: int = 1
     preprocess_time_limit: int = 1800
     file_storage_path: str = "large_files"

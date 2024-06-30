@@ -18,7 +18,7 @@ from env_search.schedulers import Scheduler
 from env_search.utils.logging import worker_log
 from env_search.utils.metric_logger import MetricLogger
 # from env_search.warehouse.warehouse_manager import WarehouseManager
-# from env_search.competition.competition_manager import CompetitionManager
+from env_search.competition.competition_manager import CompetitionManager
 from env_search.traffic_mapf.traffic_mapf_manager import TrafficMAPFManager
 import wandb
 
@@ -27,7 +27,7 @@ import wandb
 IMPORTS_FOR_GIN = (
     GridArchive,
     # WarehouseManager,
-    # CompetitionManager,
+    CompetitionManager,
     TrafficMAPFManager
 )
 

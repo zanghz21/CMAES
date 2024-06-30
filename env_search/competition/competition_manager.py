@@ -26,7 +26,8 @@ from env_search.competition.emulation_model.networks import (
 from env_search.competition.module import (CompetitionModule, CompetitionConfig)
 from env_search.competition.run import (run_competition,
                                         process_competition_eval_result,
-                                        run_competition_iterative_update)
+                                        run_competition_iterative_update,
+                                        run_competition_online_update)
 from env_search.utils.worker_state import init_competition_module
 from env_search.utils import (competition_obj_types, competition_env_number2str,
                               competition_env_str2number, format_env_str,
@@ -75,6 +76,7 @@ class CompetitionManager:
         bounds=None,
         iterative_update: bool = False,
         update_model_n_params: int = -1,
+        online_update: bool = False, 
         n_evals: int = gin.REQUIRED,
         lvl_width: int = gin.REQUIRED,
         lvl_height: int = gin.REQUIRED,
@@ -126,6 +128,7 @@ class CompetitionManager:
 
         # Iterative update
         self.iterative_update = iterative_update
+        self.online_update = online_update
         self.update_model_n_params = update_model_n_params
 
     def em_init(self,
@@ -241,25 +244,6 @@ class CompetitionManager:
             # solutions to its bidirected counterpart (i.e. add -1 to indicate
             # the blocked edges)
             if not self.bi_directed:
-                # raw_weights = self.base_map_json["weights"]
-                # new_sols = []
-                # for sol in repaired_sols:
-                #     if self.optimize_wait:
-                #         j = 1
-                #         new_sol = [sol[0]]
-                #         new_sol.extend(copy.deepcopy(raw_weights))
-                #     else:
-                #         j = 0
-                #         new_sol = copy.deepcopy(raw_weights)
-                #     for i in range(len(raw_weights)):
-                #         # Edge is valid
-                #         if raw_weights[i] != -1:
-                #             idx = i + 1 if self.optimize_wait else i
-                #             new_sol[idx] = sol[j]
-                #             j += 1
-                #     assert j == len(sol)
-                #     new_sols.append(new_sol)
-                # actual_sols = np.array(new_sols)
                 raise NotImplementedError()
             else:
                 actual_sols = repaired_sols
@@ -366,7 +350,7 @@ class CompetitionManager:
                 )
             ]
             results = self.client.gather(process_futures)
-        else:
+        elif not self.online_update:
             assert self.optimize_wait
             # Otherwise, evaluate using iterative update func
             iter_update_sols = unrepaired_sols
@@ -409,7 +393,63 @@ class CompetitionManager:
                 ) for (curr_result_json, map_id) in zip(results_json, map_ids)
             ]
             results = self.client.gather(process_futures)
+        else: # online upate
+            evaluation_seeds = self.rng.integers(np.iinfo(np.int32).max / 2,
+                                                 size=n_sols*self.n_evals,
+                                                 endpoint=True)
+            iter_update_sols = [sol for sol in unrepaired_sols for _ in range(self.n_evals)]
+            
+            eval_logdir = self.logdir.pdir(
+                f"evaluations/eval_batch_{batch_idx}")
+            sim_start_time = time.time()
+            # TODO: 改成多个 random seed
+            sim_futures = [
+                self.client.submit(
+                    run_competition_online_update,
+                    n_valid_edges=self.n_valid_edges,
+                    n_valid_vertices=self.n_valid_vertices,
+                    eval_logdir=eval_logdir,
+                    model_params=sol,
+                    seed=seed,
+                ) for sol, seed in zip(iter_update_sols, evaluation_seeds)
+            ]
+            logger.info("Collecting evaluations")
+            results_and_weights = self.client.gather(sim_futures)
+            self.sim_runtime += time.time() - sim_start_time
+            
+            # results_json = []
+            # all_weights = []
+            # for i in range(n_sols):
+            #     result_json, curr_all_weights = results_and_weights[i]
+            #     results_json.append(result_json)
+            #     all_weights.append(curr_all_weights)
+            results_json_sorted = []
+            eval_all_weights_sorted = []
+            # print(len(results_and_weights), n_sols, self.n_evals)
+            for i in range(n_sols):
+                eval_results = []
+                eval_all_weights = []
+                for j in range(self.n_evals):
+                    result_json, curr_all_weights = results_and_weights[i*self.n_evals+j]
+                    eval_results.append(result_json)
+                    eval_all_weights.append(curr_all_weights)
+                results_json_sorted.append(eval_results)
+                eval_all_weights_sorted.append(eval_all_weights)
 
+            logger.info("Processing eval results")
+
+            process_futures = [
+                self.client.submit(
+                    process_competition_eval_result,
+                    edge_weights=all_weights[0][self.n_valid_vertices:],
+                    wait_costs=all_weights[0][:self.n_valid_vertices],
+                    curr_result_json=curr_result_json,
+                    n_evals=self.n_evals,
+                    map_id=map_id,
+                ) for (curr_result_json, all_weights, map_id) in zip(results_json_sorted, eval_all_weights_sorted, map_ids)
+            ]
+            results = self.client.gather(process_futures)
+                
         return results
 
     def add_experience(self, sol, result):
