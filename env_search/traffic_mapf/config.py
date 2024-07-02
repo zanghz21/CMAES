@@ -24,6 +24,7 @@ class TrafficMAPFConfig:
     learn_obst_flow: bool = False
     
     # sim cfg
+    use_lns: bool = False
     gen_tasks: bool = True
     num_agents: bool = gin.REQUIRED
     num_tasks: int = 100000

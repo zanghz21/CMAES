@@ -68,6 +68,8 @@ class TrafficMAPFModule:
         kwargs["seed"] = int(self.rng.integers(100000))
         
         delimiter = "[=====delimiter======]"
+        simulator_path = "simulators.trafficMAPF_lns" if self.config.use_lns else "simulators.trafficMAPF"
+        
         if save_in_disk:
             file_path = generate_hash_file_path()
             with open(file_path, 'w') as f:
@@ -76,7 +78,7 @@ class TrafficMAPFModule:
                     [
                         'python', '-c', f"""\
 import numpy as np
-from simulators.trafficMAPF import py_driver
+from {simulator_path} import py_driver
 import json
 import time
 
@@ -102,7 +104,7 @@ print("{delimiter}")
         else:
             run_results = subprocess.run(['python', '-c', f"""\
 import numpy as np
-from simulators.trafficMAPF import py_driver
+from {simulator_path} import py_driver
 import json
 
 kwargs_ = {kwargs}
