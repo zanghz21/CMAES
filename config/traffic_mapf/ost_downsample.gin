@@ -1,6 +1,6 @@
 include "config/traffic_mapf/base.gin"
 
-experiment.name = "trafficMAPF"
+experiment.name = "trafficMAPF ost downsample"
 
 TrafficMAPFConfig.simu_time = 1000
 
@@ -15,9 +15,8 @@ TrafficMAPFConfig.net_type = "quad"
 
 TrafficMAPFManager.update_model_n_params = 192
 
-TrafficMAPFConfig.num_agents = 6000
+TrafficMAPFConfig.num_agents = 1500
 
 TrafficMAPFConfig.gen_tasks = True
-TrafficMAPFConfig.all_json_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/ost003d_0_2000.json"
-
-TrafficMAPFConfig.map_path =  "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/ost003d.map"
+TrafficMAPFConfig.all_json_path = ""
+TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/ost003d_downsample_repaired.map"

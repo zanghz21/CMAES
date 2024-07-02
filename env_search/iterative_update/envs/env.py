@@ -4,7 +4,7 @@ import json
 import numpy as np
 import copy
 # import py_driver  # type: ignore # ignore pylance warning
-# import warehouse_sim  # type: ignore # ignore pylance warning
+# from simulators.rhcr import warehouse_sim  # type: ignore # ignore pylance warning
 
 # from abc import ABC
 from gymnasium import spaces
@@ -238,7 +238,7 @@ class CompetitionIterUpdateEnv(IterUpdateEnvBase):
                     [
                         'python', '-c', f"""\
 import numpy as np
-import py_driver
+from simulators.wppl import py_driver as wppl_py_driver
 import json
 import time
 
@@ -253,7 +253,7 @@ rng = np.random.default_rng(seed={self.seed})
 for _ in range({self.config.iter_update_n_sim}):
     kwargs_["seed"] = int(rng.integers(100000))
     t0 = time.time()
-    result_jsonstr = py_driver.run(**kwargs_)
+    result_jsonstr = wppl_py_driver.run(**kwargs_)
     t1 = time.time()
     print("{delimiter2}")
     print(t1-t0)
@@ -282,14 +282,14 @@ print("{delimiter1}")
                     [
                         'python', '-c', f"""\
 import numpy as np
-import py_driver
+from simulators.wppl import py_driver as wppl_py_driver
 import json
 
 kwargs_ = {kwargs}
 results = []
 for _ in range({self.config.iter_update_n_sim}):
     kwargs_["seed"] = int({self.rng.integers(100000)})
-    result_jsonstr = py_driver.run(**kwargs_)
+    result_jsonstr = wppl_py_driver.run(**kwargs_)
     result = json.loads(result_jsonstr)
     results.append(result)
 np.set_printoptions(threshold=np.inf)
@@ -328,12 +328,6 @@ print("{delimiter1}")
         for result_json in results:
             for key in keys:
                 collected_results[key].append(result_json[key])
-
-        for _ in range(self.config.iter_update_n_sim):
-            kwargs["seed"] = int(self.rng.integers(100000))
-            result_jsonstr = py_driver.run(**kwargs)
-            result = json.loads(result_jsonstr)
-            results.append(result)
 
         # aggregate results
         keys = results[0].keys()

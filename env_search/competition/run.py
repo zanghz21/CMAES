@@ -104,6 +104,31 @@ def run_competition_iterative_update(
     return result, all_weights
 
 
+def run_competition_online_update(
+    n_valid_edges: int,
+    n_valid_vertices: int,
+    eval_logdir: str,
+    model_params: np.ndarray,
+    seed: int,
+):
+    start = time.time()
+
+    competition_module = get_competition_module()
+
+    result, all_weights = competition_module.evaluate_online_update(
+        model_params,
+        eval_logdir,
+        n_valid_edges,
+        n_valid_vertices,
+        seed,
+    )
+
+    logger.info("run_competition_iterative_update done after %f sec",
+                time.time() - start)
+
+    return result, all_weights
+
+    
 def process_competition_eval_result(
     edge_weights,
     wait_costs,

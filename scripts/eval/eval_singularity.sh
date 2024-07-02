@@ -1,4 +1,4 @@
-PROJECT_DIR=/media/project0/hongzhi/TrafficFlowMAPF
+PROJECT_DIR=/jet/home/hzang/TrafficFlowMAPF
 SINGULARITY_OPTS="--cleanenv --env MALLOC_TRIM_THRESHOLD_=0 --bind ${PROJECT_DIR}:${PROJECT_DIR}"
 
 LOGDIR=logs/2024-06-14_19-44-27_trafficmapf-win-r_sGdmyEH8 # win_r=1, again

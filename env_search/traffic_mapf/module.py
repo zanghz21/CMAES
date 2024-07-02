@@ -33,6 +33,7 @@ class TrafficMAPFModule:
             assert (self.config.output_size == 1)
     
     def gen_sim_kwargs(self, nn_weights_list):
+        nn_weights_list[-1] -= 5
         kwargs = {
             "simu_time": self.config.simu_time, 
             "map_path": self.config.map_path, 
@@ -50,7 +51,9 @@ class TrafficMAPFModule:
             "num_tasks": self.config.num_tasks, 
             "hidden_size": self.config.hidden_size, 
             "task_assignment_strategy": self.config.task_assignment_strategy, 
-            "use_cached_nn": self.config.use_cached_nn
+            "use_cached_nn": self.config.use_cached_nn, 
+            "default_obst_flow": self.config.default_obst_flow, 
+            "learn_obst_flow": self.config.learn_obst_flow
         }
         if not self.config.gen_tasks:
             assert self.config.all_json_path is not None
@@ -73,7 +76,7 @@ class TrafficMAPFModule:
                     [
                         'python', '-c', f"""\
 import numpy as np
-import py_driver
+from simulators.trafficMAPF import py_driver
 import json
 import time
 
@@ -99,7 +102,7 @@ print("{delimiter}")
         else:
             run_results = subprocess.run(['python', '-c', f"""\
 import numpy as np
-import py_driver
+from simulators.trafficMAPF import py_driver
 import json
 
 kwargs_ = {kwargs}

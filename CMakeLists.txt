@@ -5,7 +5,7 @@ project(lifelong)
 set(CMAKE_CXX_STANDARD 11)
 
 # Let cmake build for python 3.8
-find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
+find_package(Python 3.9 COMPONENTS Interpreter Development REQUIRED)
 
 
 IF(NOT CMAKE_BUILD_TYPE)

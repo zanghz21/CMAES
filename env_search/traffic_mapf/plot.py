@@ -11,6 +11,8 @@ def get_json_name(json_path):
     return json_path.split('/')[-1][:-5]
     
 def plot_fig(data, mask, save_dir, save_name):
+    h, w = mask.shape
+    plt.figure(figsize=(int(w/10), int(h/10)))
     mask_data = np.ma.array(data, mask=mask)
     cmap = plt.cm.Reds
     cmap.set_bad(color='black')

@@ -163,14 +163,14 @@ class CompetitionCNNUpdateModel(CompetitionBaseUpdateModel):
             ),
         )
         model.add_module(f"initial:relu", nn.ReLU(inplace=True))
-        model.add_module(f"initial:BatchNorm", nn.BatchNorm2d(32))
+        model.add_module(f"initial:BatchNorm", nn.BatchNorm2d(self.n_hid_chan))
 
         model.add_module(
             f"internal1:conv:{n_hid_chan}-{n_hid_chan}",
             nn.Conv2d(n_hid_chan, n_hid_chan, 1, 1, 0, bias=True),
         )
         model.add_module(f"internal1:relu", nn.ReLU(inplace=True))
-        model.add_module(f"internal1:BatchNorm", nn.BatchNorm2d(32))
+        model.add_module(f"internal1:BatchNorm", nn.BatchNorm2d(self.n_hid_chan))
 
         model.add_module(
             f"internal2:conv:{n_hid_chan}-5",
@@ -189,7 +189,9 @@ class CompetitionCNNUpdateModel(CompetitionBaseUpdateModel):
             weights (np.ndarray): weights to set, 1D numpy array
         """
         with torch.no_grad():
-            assert weights.shape == (self.num_params,)
+            if weights.shape != (self.num_params,):
+                print(f"num params should be {self.num_params}")
+                raise NotImplementedError
 
             state_dict = self.model.state_dict()
 

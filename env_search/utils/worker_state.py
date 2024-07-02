@@ -9,8 +9,8 @@ from dask.distributed import get_worker
 
 # from env_search.warehouse.config import WarehouseConfig
 # from env_search.warehouse.module import WarehouseModule
-# from env_search.competition.config import CompetitionConfig
-# from env_search.competition.module import CompetitionModule
+from env_search.competition.config import CompetitionConfig
+from env_search.competition.module import CompetitionModule
 from env_search.traffic_mapf.config import TrafficMAPFConfig
 from env_search.traffic_mapf.module import TrafficMAPFModule
 
@@ -48,21 +48,21 @@ def get_worker_state(key: str) -> object:
 #     return get_worker_state(WAREHOUSE_MOD_ATTR)
 
 
-# #
-# # Competition module
-# #
+#
+# Competition module
+#
 
-# COMPETITION_MOD_ATTR = "competition_module"
-
-
-# def init_competition_module(config: CompetitionConfig):
-#     """Initializes this worker's competition module."""
-#     set_worker_state(COMPETITION_MOD_ATTR, CompetitionModule(config))
+COMPETITION_MOD_ATTR = "competition_module"
 
 
-# def get_competition_module() -> CompetitionModule:
-#     """Retrieves this worker's competition module."""
-#     return get_worker_state(COMPETITION_MOD_ATTR)
+def init_competition_module(config: CompetitionConfig):
+    """Initializes this worker's competition module."""
+    set_worker_state(COMPETITION_MOD_ATTR, CompetitionModule(config))
+
+
+def get_competition_module() -> CompetitionModule:
+    """Retrieves this worker's competition module."""
+    return get_worker_state(COMPETITION_MOD_ATTR)
 
 #
 # TrafficMAPF module
