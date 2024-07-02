@@ -66,3 +66,4 @@ class CompetitionConfig:
     iter_update_max_iter: int = None
     iter_update_n_sim: int = 1
     iter_update_mdl_kwargs: Dict = None
+    use_cumulative_traffic: bool = False

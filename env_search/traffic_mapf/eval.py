@@ -2,7 +2,7 @@ import json
 import os
 import gin.config
 import numpy as np
-import py_driver
+from simulators.trafficMAPF import py_driver
 import time
 import gin
 from env_search.traffic_mapf.config import TrafficMAPFConfig
@@ -29,6 +29,8 @@ def get_time_str():
 def get_eval_log_save_path(save_dir, map_path, suffix=None):
     map_name = get_map_name(map_path)
     filename = map_name if suffix is None else map_name + "_" + suffix
+    timestr = get_time_str()
+    filename += "_" + timestr
     save_path = os.path.join(save_dir, filename+".json")
     return save_path
 
@@ -180,6 +182,7 @@ def warehouse_large_experiments(base_kwargs, save_dir):
     for ag in [8000]:
         for i in range(5):
             base_kwargs["all_json_path"] = f"../Guided-PIBT/guided-pibt/benchmark-lifelong/warehouse_large_{i}_{ag}.json"
+            base_kwargs["save_path"] = get_eval_log_save_path(save_dir, map_path="../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/warehouse_large.map")
             t = time.time()
             result_json_s = py_driver.run(**base_kwargs)
             sim_time = time.time()-t
@@ -212,7 +215,7 @@ def experiments(base_kwargs, save_dir, save_suffix):
     # warehouse_small_experiments(base_kwargs)
     warehouse_large_experiments(base_kwargs, save_dir)
     
-def main(log_dir, vis=False, suffix="gen_t"):
+def main(log_dir, vis=False, suffix=None):
     net_file = os.path.join(log_dir, "optimal_update_model.json")
     cfg_file = os.path.join(log_dir, "config.gin")
     gin.parse_config_file(cfg_file, skip_unknown=True)

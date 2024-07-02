@@ -76,7 +76,7 @@ class TrafficMAPFModule:
                     [
                         'python', '-c', f"""\
 import numpy as np
-import py_driver
+from simulators.trafficMAPF import py_driver
 import json
 import time
 
@@ -102,7 +102,7 @@ print("{delimiter}")
         else:
             run_results = subprocess.run(['python', '-c', f"""\
 import numpy as np
-import py_driver
+from simulators.trafficMAPF import py_driver
 import json
 
 kwargs_ = {kwargs}

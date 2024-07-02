@@ -360,13 +360,13 @@ def tile_usage_heatmap_from_qd(
                     gridspec_kw=grid_kws,
                 )
 
-                if domain == "kiva":
-                    repaired_env = kiva_env_str2number(map_str)
-                    visualize_kiva(repaired_env, ax=ax_map, dpi=300)
-                elif domain == "competition":
-                    visualize_competition(competition_env_str2number(map_str),
-                                          ax=ax_map,
-                                          dpi=300)
+                # if domain == "kiva":
+                #     repaired_env = kiva_env_str2number(map_str)
+                #     visualize_kiva(repaired_env, ax=ax_map, dpi=300)
+                # elif domain == "competition":
+                #     visualize_competition(competition_env_str2number(map_str),
+                #                           ax=ax_map,
+                #                           dpi=300)
 
                 tile_usage = np.array(metadata["tile_usage"])
                 if domain == "kiva":

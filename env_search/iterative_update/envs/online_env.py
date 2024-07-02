@@ -48,8 +48,9 @@ class CompetitionOnlineEnv:
         edge_weight_matrix = np.array(
             comp_uncompress_edge_matrix(self.comp_map, self.curr_edge_weights))
 
-        wait_cost_matrix += self.last_wait_usage
-        edge_usage_matrix += self.last_edge_usage
+        if self.config.use_cumulative_traffic:
+            wait_cost_matrix += self.last_wait_usage
+            edge_usage_matrix += self.last_edge_usage
         
         self.last_wait_usage = wait_cost_matrix
         self.last_edge_usage = edge_usage_matrix
@@ -269,7 +270,7 @@ print("{delimiter1}")
         self.last_tasks = None
         
         zero_obs = np.zeros((10, *self.comp_map.graph.shape), dtype=np.float32)
-        self.last_wait_usage = np.zeros(np.prod(self.comp_map.graph.shape))
-        self.last_edge_usage = np.zeros(4*np.prod(self.comp_map.graph.shape))
+        # self.last_wait_usage = np.zeros(np.prod(self.comp_map.graph.shape))
+        # self.last_edge_usage = np.zeros(4*np.prod(self.comp_map.graph.shape))
         info = {"result": {}}
         return zero_obs, info

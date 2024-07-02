@@ -196,3 +196,8 @@ cython_debug/
 
 run_files/
 wandb/
+
+CMakeFiles/
+cmake_install.cmake
+CMakeCache.txt
+Makefile
