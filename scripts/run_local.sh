@@ -93,7 +93,7 @@ print_header "Starting Dask workers"
 # shellcheck disable=SC2086
 singularity exec ${SINGULARITY_OPTS} --nv ../singularity/ubuntu_warehouse.sif \
   dask-worker \
-    --memory-limit="4 GiB" \
+    --memory-limit="20 GiB" \
     --scheduler-file $SCHEDULER_FILE \
     --nprocs $NUM_WORKERS \
     --nthreads 1 &
@@ -109,6 +109,7 @@ singularity exec ${SINGULARITY_OPTS} --nv ../singularity/ubuntu_warehouse.sif \
     --config "$CONFIG" \
     --address "127.0.0.1:$SCHEDULER_PORT" \
     --seed "$SEED" \
+    --logdir_root "/ocean/projects/cis220074p/hzang/trafficmapf_log" \
     $RELOAD_ARG
 print_thick_line
 

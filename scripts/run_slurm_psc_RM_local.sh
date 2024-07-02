@@ -33,7 +33,7 @@ echo "\
 #!/bin/bash
 #SBATCH --job-name=EM_search_${DATE}
 #SBATCH -N 1
-#SBATCH -p EM
+#SBATCH -p RM-512
 #SBATCH -t 24:00:00
 #SBATCH -n $NUM_WORKERS
 #SBATCH --account=cis220074p
