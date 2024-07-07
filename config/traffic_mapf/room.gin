@@ -11,13 +11,11 @@ TrafficMAPFConfig.has_previous = False
 
 TrafficMAPFConfig.num_agents = 1500
 
-TrafficMAPFManager.n_evals = 5
-
-TrafficMAPFConfig.win_r = 1
 TrafficMAPFConfig.net_type = "quad"
-TrafficMAPFManager.update_model_n_params = 192
+TrafficMAPFManager.update_model_n_params = 560
 
-Manager.max_evals = 20000
+Manager.max_evals = 10000
 
 TrafficMAPFConfig.gen_tasks = True
-TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/room-64-64-8_3_1000.json"
+TrafficMAPFConfig.use_lns = True
+TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/room-64-64-8.map"

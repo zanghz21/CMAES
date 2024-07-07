@@ -6,7 +6,8 @@ print_header() {
 CONFIG="$1"
 NUM_WORKERS="$2"
 SEED="$3"
-shift 3
+PARTITION="$4"
+shift 4
 DRY_RUN=""
 RELOAD_ARG=""
 while getopts "dr:" opt; do
@@ -33,8 +34,8 @@ echo "\
 #!/bin/bash
 #SBATCH --job-name=EM_search_${DATE}
 #SBATCH -N 1
-#SBATCH -p RM-512
-#SBATCH -t 24:00:00
+#SBATCH -p $PARTITION
+#SBATCH -t 72:00:00
 #SBATCH -n $NUM_WORKERS
 #SBATCH --account=cis220074p
 #SBATCH --output $SEARCH_OUT

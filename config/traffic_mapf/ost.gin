@@ -1,14 +1,12 @@
 include "config/traffic_mapf/base.gin"
 
-experiment.name = "trafficMAPF"
+experiment.name = "trafficMAPF game"
 
 TrafficMAPFConfig.simu_time = 1000
 
 TrafficMAPFConfig.has_map = False
 TrafficMAPFConfig.has_path = False
 TrafficMAPFConfig.has_previous = False
-
-TrafficMAPFManager.n_evals = 1
 
 TrafficMAPFConfig.win_r = 1
 TrafficMAPFConfig.net_type = "quad"
@@ -19,5 +17,5 @@ TrafficMAPFConfig.num_agents = 6000
 
 TrafficMAPFConfig.gen_tasks = True
 TrafficMAPFConfig.all_json_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/ost003d_0_2000.json"
-
+TrafficMAPFConfig.use_lns = True
 TrafficMAPFConfig.map_path =  "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/ost003d.map"

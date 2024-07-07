@@ -795,7 +795,7 @@ class Manager:  # pylint: disable = too-many-instance-attributes
     def execute(self):
         """Runs the entire algorithm."""
         run = wandb.init(
-            name="CMA-ES", 
+            name="[psc]CMA-ES", 
             project="TrafficMAPF", 
             # mode="disabled"
         )

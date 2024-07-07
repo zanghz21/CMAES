@@ -192,7 +192,7 @@ $(if [ -n "$HPC_MASTER_GPU" ]; then echo "module load gcc/11.3.0"; fi)
 $(if [ -n "$HPC_MASTER_GPU" ]; then echo "module load cuda/11.7.1"; fi)
 
 # Start the scheduler.
-singularity exec ${SINGULARITY_OPTS} ../singularity/ubuntu_warehouse.sif \\
+singularity exec ${SINGULARITY_OPTS} ../singularity/ubuntu_onlineGGO.sif \\
   dask-scheduler \\
     --port $SCHEDULER_PORT \\
     --scheduler-file $SCHEDULER_FILE &
@@ -200,7 +200,7 @@ singularity exec ${SINGULARITY_OPTS} ../singularity/ubuntu_warehouse.sif \\
 sleep 30  # Wait for scheduler to start.
 
 # Parse address from scheduler file.
-address=\$(singularity exec ${SINGULARITY_OPTS} ../singularity/ubuntu_warehouse.sif python -c \"\\
+address=\$(singularity exec ${SINGULARITY_OPTS} ../singularity/ubuntu_onlineGGO.sif python -c \"\\
 import json
 with open('$SCHEDULER_FILE', 'r') as file:
   print(json.load(file)['address'])
@@ -210,7 +210,7 @@ with open('$SCHEDULER_FILE', 'r') as file:
 # does not block.
 # Important to run in background, so we can run the main experiment in
 # foreground.
-singularity exec ${SINGULARITY_OPTS} ../singularity/ubuntu_warehouse.sif \\
+singularity exec ${SINGULARITY_OPTS} ../singularity/ubuntu_onlineGGO.sif \\
   dask-worker \\
     --scheduler-file $SCHEDULER_FILE \\
     --nprocs $HPC_MASTER_WORKERS \\
@@ -218,7 +218,7 @@ singularity exec ${SINGULARITY_OPTS} ../singularity/ubuntu_warehouse.sif \\
 
 # Start main experiment in the foreground.
 singularity exec ${SINGULARITY_OPTS} $(if [ -n "$HPC_MASTER_GPU" ]; then echo "--nv"; fi) \\
-  ../singularity/ubuntu_warehouse.sif \\
+  ../singularity/ubuntu_onlineGGO.sif \\
   python env_search/main.py \\
     --config $CONFIG $RELOAD_ARG $LOGDIR_ROOT_ARG \\
     --address \$address \\
@@ -259,7 +259,7 @@ date
 
 # Important to not run in background, as the worker must block so that the slurm
 # job does not terminate.
-singularity exec ${SINGULARITY_OPTS} ../singularity/ubuntu_warehouse.sif \\
+singularity exec ${SINGULARITY_OPTS} ../singularity/ubuntu_onlineGGO.sif \\
   dask-worker \\
     --scheduler-file $SCHEDULER_FILE \\
     --nprocs $HPC_SLURM_CPUS_PER_NODE \\

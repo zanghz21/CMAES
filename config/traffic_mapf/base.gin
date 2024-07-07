@@ -19,6 +19,7 @@ Manager.bounds = %bounds
 Manager.initial_mean = 5
 
 TrafficMAPFManager.update_model_n_params = 560
+TrafficMAPFManager.n_evals = 2
 TrafficMAPFConfig.net_type = "quad"
 TrafficMAPFConfig.has_map = False
 TrafficMAPFConfig.has_path = False
