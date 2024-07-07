@@ -687,6 +687,23 @@ def load_pibt_default_config():
         config_str = json.dumps(config)
     return config_str
 
+def load_w_pibt_default_config():
+    """Return default PIBT config as json str.
+    """
+    config_path = "WPPL/configs/win_pibt_default_no_rot.json"
+    with open(config_path) as f:
+        config = json.load(f)
+        config_str = json.dumps(config)
+    return config_str
+
+def load_wppl_default_config():
+    """Return default PIBT config as json str.
+    """
+    config_path = "WPPL/configs/wppl_default_no_rot.json"
+    with open(config_path) as f:
+        config = json.load(f)
+        config_str = json.dumps(config)
+    return config_str
 
 def single_sim_done(result_dir_full):
     """Check if previous single simulation is done.

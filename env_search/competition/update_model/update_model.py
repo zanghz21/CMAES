@@ -139,6 +139,28 @@ class CompetitionCNNUpdateModel(CompetitionBaseUpdateModel):
 
         return np.array(wait_cost_update_vals), np.array(
             edge_weight_update_vals)
+    
+    def get_update_values_from_obs(
+        self, obs: np.ndarray
+    ):
+        obs = torch.from_numpy(obs).to(torch.float32).unsqueeze(0)
+        with torch.no_grad():
+            output = self.model.forward(obs)
+            output = output.squeeze().cpu().numpy()
+
+        edge_weight_update_vals = np.moveaxis(output[:4], 0, 2)
+        wait_cost_update_vals = output[-1]
+        edge_weight_update_vals = comp_compress_edge_matrix(
+            self.comp_map,
+            edge_weight_update_vals.flatten(),
+        )
+        wait_cost_update_vals = comp_compress_vertex_matrix(
+            self.comp_map,
+            wait_cost_update_vals.flatten(),
+        )
+
+        return np.array(wait_cost_update_vals), np.array(
+            edge_weight_update_vals)
 
     def _build_model(
         self,

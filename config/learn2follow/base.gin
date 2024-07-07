@@ -1,0 +1,37 @@
+sigma0 = 5
+bounds = (0.1, 100)
+
+Manager.env_manager_class = @Learn2FollowManager
+Manager.is_em = False
+Manager.is_cma_mae = False
+Manager.max_evals = 10000
+Manager.initial_sols = 100
+Manager.inner_itrs = 10_000
+Manager.archive_type = @GridArchive
+# Manager.sol_size = %sol_size
+Manager.emitter_types = [(@EvolutionStrategyEmitter, 5)]
+# Logging.
+Manager.archive_save_freq = -1
+Manager.reload_save_freq = 1
+Manager.plot_metrics_freq = 1
+Manager.bounds = %bounds
+Manager.initial_mean = 5
+
+Learn2FollowManager.update_model_n_params = 1409
+Learn2FollowManager.n_evals = 1
+
+## GridArchive ##
+GridArchive.dims = [15, 100]
+GridArchive.ranges = [[5, 20], [9, 14]]
+
+# downsample/GridArchive.solution_dim = %sol_size
+downsample/GridArchive.dims = [15, 25]
+downsample/GridArchive.ranges = [[5, 20], [9, 14]]
+
+## EvolutionStrategyEmitter ##
+EvolutionStrategyEmitter.sigma0 = %sigma0
+EvolutionStrategyEmitter.es = @CMAEvolutionStrategy
+EvolutionStrategyEmitter.ranker = "obj"
+EvolutionStrategyEmitter.selection_rule = "mu"
+EvolutionStrategyEmitter.restart_rule = "basic"
+EvolutionStrategyEmitter.batch_size = 20

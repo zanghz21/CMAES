@@ -145,7 +145,7 @@ print("{delimiter1}")
                     'array', 'np.array')
                 # print(collected_results_str)
                 results = eval(results_str)
-            results = {k: v for k, v in results.items() if k not in ["final_pos", "final_tasks"]}
+            results = {k: v for k, v in results.items() if k not in ["final_pos, final_tasks", "actual_paths", "starts", "exec_future", "plan_future", "exec_move", "plan_move"]}
 
             gc.collect()
             return results
@@ -317,19 +317,9 @@ print("{delimiter1}")
         obs, info = iter_update_env.reset()
         done = False
         while not done:
-            edge_usage_matrix = np.moveaxis(obs[:4], 0, 2)
-            wait_usage_matrix = obs[4]
-            curr_edge_weights_matrix = np.moveaxis(obs[5:9], 0, 2)
-            curr_wait_costs_matrix = obs[9]
-
             # Get update value
             wait_cost_update_vals, edge_weight_update_vals = \
-                update_model.get_update_values(
-                    wait_usage_matrix,
-                    edge_usage_matrix,
-                    curr_wait_costs_matrix,
-                    curr_edge_weights_matrix,
-                )
+                update_model.get_update_values_from_obs(obs)
 
             # Perform update
             obs, imp_throughput, done, _, info = iter_update_env.step(
