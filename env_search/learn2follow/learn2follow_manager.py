@@ -6,16 +6,16 @@ import time
 import logging
 from logdir import LogDir
 
-from env_search.utils.worker_state import init_traffic_mapf_module
-from env_search.traffic_mapf.run import run_traffic_mapf, process_traffic_mapf_results
-from env_search.traffic_mapf.module import TrafficMAPFModule
-from env_search.traffic_mapf.config import TrafficMAPFConfig
+from env_search.utils.worker_state import init_learn2follow_module
+from env_search.learn2follow.run import run_learn2follow, process_learn2follow_results
+from env_search.learn2follow.module import Learn2FollowModule
+from env_search.learn2follow.config import Learn2FollowConfig
 
 
 logger = logging.getLogger(__name__)
 
 @gin.configurable(denylist=["client", "rng"])
-class TrafficMAPFManager:
+class Learn2FollowManager:
     def __init__(self, 
                  client: Client, 
                  logdir: LogDir, 
@@ -37,9 +37,9 @@ class TrafficMAPFManager:
         self.repair_runtime = 0
         self.sim_runtime = 0
         
-        self.module = TrafficMAPFModule(config := TrafficMAPFConfig())
+        self.module = Learn2FollowModule(config := Learn2FollowConfig())
         client.register_worker_callbacks(
-            lambda: init_traffic_mapf_module(config))
+            lambda: init_learn2follow_module(config))
         
     
     def get_sol_size(self):
@@ -53,32 +53,24 @@ class TrafficMAPFManager:
     def eval_pipeline(self, unrepaired_sols, parent_sols=None, batch_idx=None):
         n_sols = len(unrepaired_sols)
         assert self.iterative_update
-        
+    
+        iter_update_sols = [sol for sol in unrepaired_sols for _ in range(self.n_evals)]
         evaluation_seeds = self.rng.integers(np.iinfo(np.int32).max / 2,
                                                 size=n_sols,
                                                 endpoint=True)
-        eval_logdir = self.logdir.pdir(
-            f"evaluations/eval_batch_{batch_idx}")
-    
-        iter_update_sols = [sol for sol in unrepaired_sols for _ in range(self.n_evals)]
-        all_seeds = [s for s in evaluation_seeds for _ in range(self.n_evals)]
+        all_seeds = [seed for seed in evaluation_seeds for _ in range(self.n_evals)]
                     
         sim_start_time = time.time()
         sim_futures = [
             self.client.submit(
-                run_traffic_mapf,
+                run_learn2follow,
                 nn_weights=sol, 
-                seed=seed,
+                seed=seed, 
             ) for sol, seed in zip(iter_update_sols, all_seeds)
         ]
         logger.info("Collecting evaluations")
         results = self.client.gather(sim_futures)
         self.sim_runtime += time.time() - sim_start_time
-        
-        # results_json = []
-        # for i in range(n_sols):
-        #     result_json = results[i]
-        #     results_json.append(result_json)
         
         results_json_sorted = []
         for i in range(n_sols):
@@ -91,7 +83,7 @@ class TrafficMAPFManager:
 
         process_futures = [
             self.client.submit(
-                process_traffic_mapf_results,
+                process_learn2follow_results,
                 curr_result_jsons=curr_result_jsons
             ) for curr_result_jsons in results_json_sorted
         ]

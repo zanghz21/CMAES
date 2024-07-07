@@ -19,10 +19,10 @@ export PYTHONPATH=$PROJECT_DIR:$PYTHONPATH
 #     python env_search/traffic_mapf/plot.py --json_path=$JSON_PATH
 # done
 
-JSON_PATH=logs/2024-05-31_20-27-35_trafficmapf-sortation-small-linear_Y2BNmdhM/eval_json/sortation_small_narrow_800.json
-python env_search/traffic_mapf/plot.py --json_path=$JSON_PATH
+# JSON_PATH=logs/2024-07-01_14-42-36_trafficmapf-warehouse-30x120_SghPbuLQ/eval_json/warehouse_30x120_20240701_224712.json
+# python env_search/traffic_mapf/plot.py --json_path=$JSON_PATH
 
 
-# JSON_PATH=/media/project0/hongzhi/TrafficFlowMAPF/Guided-PIBT/baseline_results/sortation_60x100_wide_1200.json
-# MAP_PATH=/media/project0/hongzhi/TrafficFlowMAPF/Guided-PIBT/guided-pibt/benchmark-lifelong/maps/sortation_60x100.map
-# python env_search/traffic_mapf/plot.py --json_path=$JSON_PATH --map_path=$MAP_PATH
+JSON_PATH=../Guided-PIBT/baseline_results/warehouse_30x120_1000_3.json
+MAP_PATH=/media/project0/hongzhi/TrafficFlowMAPF/Guided-PIBT/guided-pibt/benchmark-lifelong/maps/warehouse_30x120.map
+python env_search/traffic_mapf/plot.py --json_path=$JSON_PATH --map_path=$MAP_PATH

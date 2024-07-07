@@ -1,0 +1,3 @@
+include "config/learn2follow/base.gin"
+
+experiment.name = "test learn2follow"

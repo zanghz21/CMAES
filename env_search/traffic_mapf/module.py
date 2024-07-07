@@ -62,10 +62,10 @@ class TrafficMAPFModule:
         return kwargs
         
         
-    def evaluate(self, nn_weights: np.ndarray, save_in_disk=True):
+    def evaluate(self, nn_weights: np.ndarray, seed: int, save_in_disk=True):
         nn_weights_list=nn_weights.tolist()
         kwargs = self.gen_sim_kwargs(nn_weights_list)
-        kwargs["seed"] = int(self.rng.integers(100000))
+        kwargs["seed"] = int(seed)
         
         delimiter = "[=====delimiter======]"
         simulator_path = "simulators.trafficMAPF_lns" if self.config.use_lns else "simulators.trafficMAPF"

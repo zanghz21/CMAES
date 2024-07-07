@@ -22,6 +22,7 @@ from env_search.utils import (
     kiva_uncompress_edge_weights,
     kiva_uncompress_wait_costs,
     load_pibt_default_config,
+    load_wppl_default_config,
     get_project_dir,
 )
 import gc
@@ -210,8 +211,13 @@ class CompetitionIterUpdateEnv(IterUpdateEnvBase):
             "file_storage_path": self.config.file_storage_path,
             "task_assignment_strategy": self.config.task_assignment_strategy,
             "num_tasks_reveal": self.config.num_tasks_reveal,
-            "config": load_pibt_default_config(),  # Use PIBT default config
         }
+        if self.config.base_algo == "pibt":
+            kwargs["config"] = load_pibt_default_config()
+        elif self.config.base_algo == "wppl":
+            kwargs["config"] = load_wppl_default_config()
+        else:
+            raise NotImplementedError
 
         if not manually_clean_memory:
             results = []  # List[json]
@@ -323,6 +329,7 @@ print("{delimiter1}")
             gc.collect()
         # aggregate results
         keys = results[0].keys()
+        keys = {k for k in results[0].keys() if k not in ["final_pos, final_tasks", "actual_paths", "starts", "exec_future", "plan_future", "exec_move", "plan_move"]}
         collected_results = {key: [] for key in keys}
 
         for result_json in results:
@@ -330,7 +337,6 @@ print("{delimiter1}")
                 collected_results[key].append(result_json[key])
 
         # aggregate results
-        keys = results[0].keys()
         collected_results = {key: [] for key in keys}
         for result_json in results:
             for key in keys:

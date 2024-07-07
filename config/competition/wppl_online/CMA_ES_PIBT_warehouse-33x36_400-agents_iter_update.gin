@@ -9,13 +9,14 @@ CompetitionManager.lvl_height = 33
 CompetitionManager.bound_handle = "normalization"
 CompetitionManager.iterative_update = True
 CompetitionManager.online_update = True
-CompetitionManager.update_model_n_params = 4271
+CompetitionManager.update_model_n_params = 5711
 
 CompetitionConfig.num_agents=400
 CompetitionConfig.simulation_time = 1000
 CompetitionConfig.iter_update_model_type = @CompetitionCNNUpdateModel
 CompetitionConfig.update_interval = 50
 CompetitionConfig.past_traffic_interval = 50
+CompetitionConfig.has_future_obs = True
 
 ## EvolutionStrategyEmitter ##
 Manager.emitter_types = [(@EvolutionStrategyEmitter, 5)]
@@ -36,7 +37,7 @@ Manager.max_evals = 10000
 CompetitionConfig.measure_names = ["wait_cost_std", "edge_pair_usage_std"]
 CompetitionConfig.iter_update_max_iter = 5
 CompetitionConfig.iter_update_mdl_kwargs = {
-    "nc": 10,
+    "nc": 15,
     "kernel_size": 3,
     "n_hid_chan": 32,
 }

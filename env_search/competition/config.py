@@ -46,11 +46,13 @@ class CompetitionConfig:
     aggregation_type: str = gin.REQUIRED
 
     # Simulation
+    base_algo: str = "pibt"
     obj_type: str = gin.REQUIRED
     simulation_time: int = gin.REQUIRED
     map_path: str = gin.REQUIRED
     num_agents: int = gin.REQUIRED
-    update_interval: int = 100
+    update_interval: int = 50
+    past_traffic_interval: int = 50
     plan_time_limit: int = 1
     preprocess_time_limit: int = 1800
     file_storage_path: str = "large_files"
@@ -67,3 +69,6 @@ class CompetitionConfig:
     iter_update_n_sim: int = 1
     iter_update_mdl_kwargs: Dict = None
     use_cumulative_traffic: bool = False
+    
+    # env
+    has_future_obs: bool = False
