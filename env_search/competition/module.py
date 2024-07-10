@@ -38,8 +38,9 @@ from env_search.utils import (MIN_SCORE, competition_obj_types,
                               get_n_valid_vertices, load_pibt_default_config,
                               single_sim_done, get_project_dir)
 from env_search.utils.logging import get_current_time_str
-from env_search.iterative_update import CompetitionIterUpdateEnv
+from env_search.iterative_update.envs.env import CompetitionIterUpdateEnv, REDUNDANT_COMPETITION_KEYS
 from env_search.iterative_update.envs.online_env import CompetitionOnlineEnv
+from env_search.iterative_update.envs.online_env_new import CompetitionOnlineEnvNew
 from env_search.competition.update_model import CompetitionBaseUpdateModel, CompetitionCNNUpdateModel
 from env_search.competition.update_model.utils import (
     Map, comp_uncompress_edge_matrix, comp_uncompress_vertex_matrix,
@@ -145,7 +146,7 @@ print("{delimiter1}")
                     'array', 'np.array')
                 # print(collected_results_str)
                 results = eval(results_str)
-            results = {k: v for k, v in results.items() if k not in ["final_pos, final_tasks", "actual_paths", "starts", "exec_future", "plan_future", "exec_move", "plan_move"]}
+            results = {k: v for k, v in results.items() if k not in REDUNDANT_COMPETITION_KEYS}
 
             gc.collect()
             return results
@@ -267,7 +268,7 @@ print("{delimiter1}")
             all_throughputs.append(curr_throughput)
             curr_result = info["result"]
 
-        # print(all_throughputs)
+        print(all_throughputs)
         # print(np.max(all_throughputs))
         # breakpoint()
         curr_wait_costs = info["curr_wait_costs"]
@@ -286,6 +287,7 @@ print("{delimiter1}")
         n_valid_edges: int,
         n_valid_vertices: int,
         seed: int,
+        env_type: str = "old"
     ):
         """Run PIU
 
@@ -296,7 +298,14 @@ print("{delimiter1}")
             n_valid_vertices (int): number of valid vertices
             seed (int): random seed
         """
-        iter_update_env = CompetitionOnlineEnv(
+        if env_type == "new":
+            env_cls = CompetitionOnlineEnvNew
+        elif env_type == "old":
+            env_cls = CompetitionOnlineEnv
+        else:
+            raise NotImplementedError
+        
+        iter_update_env = env_cls(
             n_valid_vertices=n_valid_vertices,
             n_valid_edges=n_valid_edges,
             config=self.config,

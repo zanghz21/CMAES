@@ -48,6 +48,7 @@ class CompetitionConfig:
     # Simulation
     base_algo: str = "pibt"
     obj_type: str = gin.REQUIRED
+    warmup_time: int = 50
     simulation_time: int = gin.REQUIRED
     map_path: str = gin.REQUIRED
     num_agents: int = gin.REQUIRED
@@ -59,6 +60,8 @@ class CompetitionConfig:
     task_assignment_strategy: str = "roundrobin"
     num_tasks_reveal: int = 1
     gen_random: bool = True
+    agents_path: str = None
+    tasks_path: str = None
     num_tasks: int = 100000
 
     # Iterative update. All params are optional b.c. iterative update is turned
@@ -72,3 +75,4 @@ class CompetitionConfig:
     
     # env
     has_future_obs: bool = False
+    reset_weights_path: str = None

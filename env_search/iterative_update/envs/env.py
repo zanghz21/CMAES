@@ -103,6 +103,7 @@ class IterUpdateEnvBase(gym.Env):
         return NotImplementedError()
 
 
+REDUNDANT_COMPETITION_KEYS = ["final_pos, final_tasks", "actual_paths", "starts", "exec_future", "plan_future", "exec_move", "plan_move", "past_paths", "done"]
 class CompetitionIterUpdateEnv(IterUpdateEnvBase):
 
     def __init__(
@@ -149,8 +150,13 @@ class CompetitionIterUpdateEnv(IterUpdateEnvBase):
             comp_uncompress_edge_matrix(self.comp_map, self.curr_edge_weights))
 
         # Normalize
-        wait_usage_matrix = min_max_normalize(wait_usage_matrix, 0, 1)
-        edge_usage_matrix = min_max_normalize(edge_usage_matrix, 0, 1)
+        # wait_usage_matrix = min_max_normalize(wait_usage_matrix, 0, 1)
+        # edge_usage_matrix = min_max_normalize(edge_usage_matrix, 0, 1)
+        if wait_usage_matrix.sum()!=0:
+            wait_usage_matrix = wait_usage_matrix/wait_usage_matrix.sum() * 100
+        if edge_weight_matrix.sum()!=0:
+            edge_usage_matrix = edge_usage_matrix/edge_usage_matrix.sum() * 100
+        
         wait_cost_matrix = min_max_normalize(wait_cost_matrix, 0.1, 1)
         edge_weight_matrix = min_max_normalize(edge_weight_matrix, 0.1, 1)
 
@@ -212,6 +218,9 @@ class CompetitionIterUpdateEnv(IterUpdateEnvBase):
             "task_assignment_strategy": self.config.task_assignment_strategy,
             "num_tasks_reveal": self.config.num_tasks_reveal,
         }
+        if not self.config.gen_random:
+            kwargs["agents_path"] = self.config.agents_path
+            kwargs["tasks_path"] = self.config.tasks_path
         if self.config.base_algo == "pibt":
             kwargs["config"] = load_pibt_default_config()
         elif self.config.base_algo == "wppl":
@@ -329,7 +338,7 @@ print("{delimiter1}")
             gc.collect()
         # aggregate results
         keys = results[0].keys()
-        keys = {k for k in results[0].keys() if k not in ["final_pos, final_tasks", "actual_paths", "starts", "exec_future", "plan_future", "exec_move", "plan_move"]}
+        keys = {k for k in results[0].keys() if k not in REDUNDANT_COMPETITION_KEYS}
         collected_results = {key: [] for key in keys}
 
         for result_json in results:
@@ -598,3 +607,31 @@ class WarehouseIterUpdateEnv(IterUpdateEnvBase):
         _, info = super().reset(seed=seed, options=options)
         init_result = info["result"]
         return self._gen_obs(init_result), info
+
+if __name__ == "__main__":
+    import gin
+    from env_search.utils import get_n_valid_edges, get_n_valid_vertices
+    from env_search.competition.update_model.utils import Map
+    cfg_file_path = "config/competition/test_env.gin"
+    gin.parse_config_file(cfg_file_path)
+    cfg = CompetitionConfig()
+    # cfg.has_future_obs = True
+    cfg.iter_update_n_sim = 1
+    comp_map = Map(cfg.map_path)
+    domain = "competition"
+    n_valid_vertices = get_n_valid_vertices(comp_map.graph, domain)
+    n_valid_edges = get_n_valid_edges(comp_map.graph, bi_directed=True, domain=domain)
+    
+    env = CompetitionIterUpdateEnv(n_valid_vertices, n_valid_edges, cfg, seed=0)
+    
+    np.set_printoptions(threshold=np.inf)
+    obs, info = env.reset()
+    print(obs)
+    
+    raise NotImplementedError
+
+    done = False
+    while not done:
+        action = np.random.rand(n_valid_vertices+n_valid_edges)
+        _, reward, terminated, truncated, info = env.step(action)
+        done = terminated or truncated
