@@ -227,22 +227,21 @@ class CompetitionOnlineEnvNew:
         self.curr_edge_weights = edge_weight_update_vals
 
         result = self._run_sim()
-        self.num_task_finished += result["num_task_finished"]
+        
         # self.last_agent_pos = result["final_pos"]
         # self.last_tasks = result["final_tasks"]
         # assert self.starts is not None
         self.update_paths(result["past_paths"], result["actual_paths"])
 
-        # Reward is final step update throughput
-        reward = 0
+        new_task_finished = result["num_task_finished"]
+        reward = new_task_finished - self.num_task_finished
+        self.num_task_finished = new_task_finished
         
         # terminated/truncate if no left time steps
         terminated = result["done"]
         truncated = terminated
         
-        if terminated:
-            assert (self.left_timesteps <= 0)
-            reward = result["throughput"]
+        result["throughput"] = self.num_task_finished / self.config.simulation_time
 
         # Info includes the results
         result = {k: v for k, v in result.items() if k not in REDUNDANT_COMPETITION_KEYS}
@@ -277,7 +276,7 @@ class CompetitionOnlineEnvNew:
         result_str = self.simulator.warmup()
         result = json.loads(result_str)
         self.update_paths(result["past_paths"], result["actual_paths"])
-        
+
         obs = self._gen_obs(result, is_init=True)
         info = {"result": {}}
         return obs, info

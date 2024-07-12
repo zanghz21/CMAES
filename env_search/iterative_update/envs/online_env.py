@@ -5,6 +5,7 @@ from env_search.utils.logging import get_current_time_str
 import numpy as np
 import os
 from gymnasium import spaces
+import gymnasium
 import json
 import hashlib
 import time
@@ -15,7 +16,7 @@ DIRECTION2ID = {
     "R":0, "D":3, "L":2, "U":1, "W":4
 }
 
-class CompetitionOnlineEnv:
+class CompetitionOnlineEnv(gymnasium.Env):
     def __init__(
         self,
         n_valid_vertices,
@@ -35,14 +36,16 @@ class CompetitionOnlineEnv:
 
         # Use CNN observation
         h, w = self.comp_map.height, self.comp_map.width
-        self.observation_space = spaces.Box(low=-np.inf,
-                                            high=np.inf,
-                                            shape=(10, h, w))
+        self.observation_space = spaces.Box(low=0, high=1, shape=(10, h, w))
 
         if self.config.bounds is not None:
             self.lb, self.ub = self.config.bounds
         else:
             self.lb, self.ub = None, None
+        
+        self.rl_lb, self.rl_ub = (-10, 10)
+        self.action_space = spaces.Box(low=self.rl_lb, high=self.rl_ub,
+                            shape=(self.n_valid_edges + self.n_valid_vertices,))
 
     def update_paths(self, agents_paths):
         for agent_moves, agent_new_paths in zip(self.move_hists, agents_paths):
@@ -378,18 +381,18 @@ print("{delimiter1}")
         self.update_paths(result["actual_paths"])
 
         # Reward is final step update throughput
-        reward = 0
+        reward = result["num_task_finished"]/self.config.simulation_time
         
         # terminated/truncate if no left time steps
         terminated = (self.left_timesteps <= 0)
         truncated = terminated
         
-        if terminated:
-            # print("raw tp =", result["throughput"])
-            reward = self.num_task_finished/self.config.simulation_time
-            # print("rew =", reward)
+        # if terminated:
+        #     # print("raw tp =", result["throughput"])
+        #     reward = result["num_task_finished"]
+        #     # print("rew =", reward)
 
-        result["throughput"] = reward
+        result["throughput"] = self.num_task_finished/self.config.simulation_time
         # Info includes the results
         info = {
             "result": result,
@@ -397,6 +400,9 @@ print("{delimiter1}")
             "curr_edge_weights": self.curr_edge_weights,
         }
 
+        if terminated:
+            info["episode"] ={"r": result["throughput"], "l": self.i}
+        
         return self._gen_obs(result), reward, terminated, truncated, info
 
     

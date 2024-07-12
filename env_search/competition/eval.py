@@ -38,13 +38,93 @@ def parse_map(map_path):
     n_v = get_n_valid_vertices(comp_map.graph, "competition")
     return n_e, n_v
 
-def base_exp(cfg: CompetitionConfig, model_params, log_dir):
+
+def vis_arr(arr_, mask=None, name="test"):
+    arr = arr_.copy()
+    save_dir = "env_search/competition/plots"
+    os.makedirs(save_dir, exist_ok=True)
+    import matplotlib.pyplot as plt
+    if mask is not None:
+        arr = np.ma.masked_where(mask, arr)
+    cmap = plt.cm.Reds
+    # cmap.set_bad(color='black')
+    plt.imshow(arr, cmap=cmap, interpolation="none")
+    plt.colorbar()
+    plt.savefig(os.path.join(save_dir, f"{name}.png"))
+    plt.close()
+
+
+def debug(cfg: CompetitionConfig, model_params, log_dir):
+    cfg.simulation_time = 1000
+    cfg.update_interval = 200
+    cfg.warmup_time = 1000
+    cfg.past_traffic_interval = 10
+    cfg.iter_update_n_sim = 1
+    
+    n_e, n_v = parse_map(cfg.map_path)
+    
+    from env_search.iterative_update.envs.online_env import CompetitionOnlineEnv
+    from env_search.iterative_update.envs.online_env_new import CompetitionOnlineEnvNew
+    from env_search.iterative_update.envs.env import CompetitionIterUpdateEnv
+    
+    from env_search.competition.update_model.update_model import CompetitionCNNUpdateModel
+    env_old = CompetitionOnlineEnv(n_v, n_e, cfg, seed=0)
+    env_new = CompetitionOnlineEnvNew(n_v, n_e, cfg, seed=0)
+    env_off = CompetitionIterUpdateEnv(n_v, n_e, cfg, seed=0)
+    
+    old_obs, old_info = env_old.reset()
+    print("old:", old_info["result"]["final_pos"])
+    init_pos = old_info["result"]["final_pos"]
+    
+    new_obs, info = env_new.reset()
+    
+    # raise NotImplementedError
+    # off_obs, off_info = env_off.reset()
+    
+    with open("maps/competition/ours/pibt_warehouse-33x36_w_mode_cma-es_400_agents_four-way-move.json", "r") as f:
+        weights_json = json.load(f)
+    weights = weights_json["weights"]
+    action = np.array(weights)
+    
+    
+    # raise NotImplementedError
+    comp_map = Map(cfg.map_path)
+    update_model = CompetitionCNNUpdateModel(comp_map, model_params, n_v, n_e)
+    rng = np.random.default_rng(seed=10)
+    done =False
+    i=0
+    
+    # obs = old_obs
+    while not done:
+        i+=1
+        # wait_cost_update_vals, edge_weight_update_vals = update_model.get_update_values_from_obs(obs)
+        # action = np.concatenate([wait_cost_update_vals,
+        #                         edge_weight_update_vals])
+        # off_obs, rew, terminated, truncated, info = env_off.step(action)
+        # old_obs, rew, terminated, truncated, info = env_old.step(action)
+        new_obs, rew, terminated, truncated, info = env_new.step(action)
+        # print(old_obs - off_obs)
+        # raise NotImplementedError
+        done = terminated or truncated
+        
+        # obs = off_obs
+        
+        # for j in range(5):
+        #     vis_arr(obs[j], name=f"usage{i}_{j}")
+        #     vis_arr(obs[5+j], name=f"gg{i}_{j}")
+        
+    print(info["result"]["throughput"])
+    
+
+
+def base_exp(cfg: CompetitionConfig, model_params, log_dir): 
     n_e, n_v = parse_map(cfg.map_path)
     eval_logdir = os.path.join(log_dir, "eval") # no use here
     module = CompetitionModule(cfg)
-    tp_list = []
-    for seed in range(50):
-        res, _ = module.evaluate_online_update(model_params, eval_logdir, n_e, n_v, seed)
+    tp_list = []   
+    for seed in range(5):
+        # res, _ = module.evaluate_iterative_update(model_params, eval_logdir, n_e, n_v, seed)
+        res, _ = module.evaluate_online_update(model_params, eval_logdir, n_e, n_v, seed, env_type="old")
         tp = res['throughput']
         print(f"seed = {seed}, tp = {tp}")
         tp_list.append(tp)
@@ -96,7 +176,8 @@ def main(log_dir):
     cfg = parse_config(log_dir)
     model_params = get_update_model(log_dir)
     # base_exp(cfg, model_params, log_dir)
-    transfer_exp(cfg, model_params, log_dir)
+    debug(cfg, model_params, log_dir)
+    # transfer_exp(cfg, model_params, log_dir)
     
 
 if __name__ == "__main__":
