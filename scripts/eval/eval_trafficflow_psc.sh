@@ -3,12 +3,15 @@ print_header() {
   echo "------------- $1 -------------"
 }
 
-CONFIG="$1"
+LOAD_LOGDIR="$1"
 NUM_WORKERS="$2"
-SEED="$3"
-PARTITION="$4"
-TOTAL_TIME="$5"
-shift 5
+N_EVALS="$3"
+ALL_RESULTS_DIR="$4"
+PARTITION="$5"
+TOTAL_TIME="$6"
+
+shift 6
+
 DRY_RUN=""
 RELOAD_ARG=""
 while getopts "dr:" opt; do
@@ -25,7 +28,7 @@ while getopts "dr:" opt; do
 done
 
 DATE="$(date +'%Y-%m-%d_%H-%M-%S')"
-LOGDIR="slurm_logs/slurm_${DATE}"
+LOGDIR="slurm_eval_logs/slurm_${DATE}"
 echo "SLURM Log directory: ${LOGDIR}"
 mkdir -p "$LOGDIR"
 SEARCH_SCRIPT="$LOGDIR/search.slurm"
@@ -46,41 +49,19 @@ echo
 echo \"========== Start ==========\"
 date
 
-bash scripts/run_local.sh $CONFIG $SEED $NUM_WORKERS $RELOAD_ARG
+bash scripts/eval/eval_trafficflow_local.sh $LOAD_LOGDIR $NUM_WORKERS $N_EVALS $ALL_RESULTS_DIR
 
 echo
 echo \"========== Done ==========\"
 
 date" >"$SEARCH_SCRIPT"
 
-# Submit the search script.
 if [ -z "$DRY_RUN" ]; then sbatch "$SEARCH_SCRIPT"; fi
 
-
 print_header "Monitoring Instructions"
+echo $SEARCH_OUT
 echo "\
 To view output from the search and main script, run:
 
   tail -f $SEARCH_OUT
 "
-
-#
-# Print cancellation instructions.
-#
-
-# if [ -n "$DRY_RUN" ]
-# then
-#   print_header "Skipping cancellation, dashboard, postprocessing instructions"
-#   exit 0
-# fi
-
-# # Record job ids in logging directory. This can be picked up by
-# # scripts/slurm_cancel.sh in order to cancel the job.
-# echo -n -e "$JOB_IDS" > "${LOGDIR}/job_ids.txt"
-
-# print_header "Canceling"
-# echo "\
-# To cancel this job, run:
-
-#   bash scripts/slurm_cancel.sh $LOGDIR
-# "
