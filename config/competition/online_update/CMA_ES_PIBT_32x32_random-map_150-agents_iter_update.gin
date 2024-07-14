@@ -30,7 +30,7 @@ Manager.is_cma_mae = True # This CMA-ES is CMA-MAE with learning rate 0
 Manager.bounds = None
 Manager.max_evals = 10000
 
-CompetitionConfig.measure_names = ["wait_cost_std", "edge_pair_usage_std"]
+CompetitionConfig.measure_names = ["wait_cost_std", "edge_weight_std"]
 CompetitionConfig.iter_update_max_iter = 5
 
 CompetitionConfig.iter_update_mdl_kwargs = {

@@ -1,12 +1,12 @@
 from env_search.competition.config import CompetitionConfig
 from env_search.competition.update_model.utils import Map, comp_uncompress_vertex_matrix, comp_uncompress_edge_matrix
 from env_search.utils import min_max_normalize, load_pibt_default_config, load_w_pibt_default_config, load_wppl_default_config, get_project_dir
-from env_search.utils.logging import get_current_time_str
+from env_search.utils.logging import get_current_time_str, get_hash_file_name
 import numpy as np
 import os
 from gymnasium import spaces
+import gymnasium
 import json
-import hashlib
 import time
 import subprocess
 import gc
@@ -15,7 +15,7 @@ DIRECTION2ID = {
     "R":0, "D":3, "L":2, "U":1, "W":4
 }
 
-class CompetitionOnlineEnv:
+class CompetitionOnlineEnv(gymnasium.Env):
     def __init__(
         self,
         n_valid_vertices,
@@ -35,14 +35,17 @@ class CompetitionOnlineEnv:
 
         # Use CNN observation
         h, w = self.comp_map.height, self.comp_map.width
-        self.observation_space = spaces.Box(low=-np.inf,
-                                            high=np.inf,
-                                            shape=(10, h, w))
+        self.observation_space = spaces.Box(low=0, high=1, shape=(10, h, w))
 
         if self.config.bounds is not None:
             self.lb, self.ub = self.config.bounds
         else:
             self.lb, self.ub = None, None
+        
+        self.rl_lb, self.rl_ub = (-10, 10)
+        self.reward_scale = 10
+        self.action_space = spaces.Box(low=self.rl_lb, high=self.rl_ub,
+                            shape=(self.n_valid_edges + self.n_valid_vertices,))
 
     def update_paths(self, agents_paths):
         for agent_moves, agent_new_paths in zip(self.move_hists, agents_paths):
@@ -82,33 +85,45 @@ class CompetitionOnlineEnv:
         # 5 dim
         h, w = self.comp_map.graph.shape
         exec_future_usage = np.zeros((5, h, w))
-        for agent_path, agent_m in zip(results["exec_future"], results["exec_move"]):
-            # print("exec:", agent_path, agent_m)
+        for aid, (agent_path, agent_m) in enumerate(zip(results["exec_future"], results["exec_move"])):
+            if aid in results["agents_finish_task"]:
+                continue
+            goal_id = results["final_tasks"][aid]
             for (x, y), m in zip(agent_path[1:], agent_m[1:]):
+                if x*w+y == goal_id:
+                    break
                 d_id = DIRECTION2ID[m]
                 exec_future_usage[d_id, x, y] += 1
         
         plan_future_usage = np.zeros((5, h, w))
-        for agent_path, agent_m in zip(results["plan_future"], results["plan_move"]):
-            # print("plan:", agent_path, agent_m)
+        for aid, (agent_path, agent_m) in enumerate(zip(results["plan_future"], results["plan_move"])):
+            if aid in results["agents_finish_task"]:
+                continue
+            goal_id = results["final_tasks"][aid]
             for (x, y), m in zip(agent_path, agent_m):
+                if x*w+y == goal_id:
+                    break
                 d_id = DIRECTION2ID[m]
                 plan_future_usage[d_id, x, y] += 1
                 
         if exec_future_usage.sum()!=0:
             exec_future_usage = exec_future_usage/exec_future_usage.sum()
         if plan_future_usage.sum()!=0:
-            plan_future_usage = plan_future_usage/plan_future_usage.sum()            
+            plan_future_usage = plan_future_usage/plan_future_usage.sum()     
         
         return exec_future_usage, plan_future_usage
         
         
-    def _gen_traffic_obs_new(self):
+    def _gen_traffic_obs_new(self, is_init=False):
         h, w = self.comp_map.graph.shape
         edge_usage = np.zeros((4, h, w))
         wait_usage = np.zeros((1, h, w))
         
-        time_range = min(self.config.past_traffic_interval, self.config.simulation_time-self.left_timesteps)
+        if not is_init:
+            time_range = min(self.config.past_traffic_interval, self.config.simulation_time-self.left_timesteps)
+        else:
+            time_range = min(self.config.past_traffic_interval, self.config.warmup_time)
+            
         for t in range(time_range):
             for agent_i in range(self.config.num_agents):
                 prev_x, prev_y = self.pos_hists[agent_i][-(time_range+1-t)]
@@ -122,10 +137,11 @@ class CompetitionOnlineEnv:
                     wait_usage[0, prev_x, prev_y] += 1
         
         if wait_usage.sum() != 0:
-            wait_usage_matrix = wait_usage/wait_usage.sum()
+            wait_usage = wait_usage/wait_usage.sum() * 100
         if edge_usage.sum() != 0:
-            edge_usage_matrix = edge_usage/edge_usage.sum()
-        return wait_usage_matrix, edge_usage_matrix                       
+            edge_usage = edge_usage/edge_usage.sum() * 100
+        # print("new, wait_usage:", wait_usage.max(), "edge_usage:", edge_usage.max())
+        return wait_usage, edge_usage                       
                             
         
     def _gen_traffic_obs(self, result):
@@ -143,8 +159,10 @@ class CompetitionOnlineEnv:
         # wait_usage_matrix = min_max_normalize(wait_usage_matrix, 0, 1)
         # edge_usage_matrix = min_max_normalize(edge_usage_matrix, 0, 1)
         
-        wait_usage_matrix = wait_usage_matrix/wait_usage_matrix.sum()
-        edge_usage_matrix = edge_usage_matrix/edge_usage_matrix.sum()
+        if wait_usage_matrix.sum() != 0:
+            wait_usage_matrix = wait_usage_matrix/wait_usage_matrix.sum() * 100
+        if edge_usage_matrix.sum() != 0:
+           edge_usage_matrix = edge_usage_matrix/edge_usage_matrix.sum() * 100
         
         h, w = self.comp_map.graph.shape
         edge_usage_matrix = edge_usage_matrix.reshape(h, w, 4)
@@ -155,8 +173,8 @@ class CompetitionOnlineEnv:
         return wait_usage_matrix, edge_usage_matrix
         
         
-    def _gen_obs(self, result):
-        wait_usage_matrix, edge_usage_matrix = self._gen_traffic_obs_new()
+    def _gen_obs(self, result, is_init=False):
+        wait_usage_matrix, edge_usage_matrix = self._gen_traffic_obs_new(is_init)
         # wait_usage_matrix, edge_usage_matrix = self._gen_traffic_obs(result)
         
         wait_cost_matrix = np.array(
@@ -203,7 +221,8 @@ class CompetitionOnlineEnv:
 
         """
         # cmd = f"./lifelong_comp --inputFile {self.input_file} --simulationTime {self.simulation_time} --planTimeLimit 1 --fileStoragePath large_files/"
-
+        # print("_run_sim")
+        
         # Initial weights are assumed to be valid
         if init_weight:
             edge_weights = self.curr_edge_weights.tolist()
@@ -213,8 +232,11 @@ class CompetitionOnlineEnv:
                                              self.ub).tolist()
             wait_costs = min_max_normalize(self.curr_wait_costs, self.lb,
                                            self.ub).tolist()
+        if not init_weight:
+            simulation_steps = min(self.left_timesteps, self.config.update_interval)
+        else:
+            simulation_steps = min(self.left_timesteps, self.config.warmup_time)
         
-        simulation_steps = min(self.left_timesteps, self.config.update_interval)
         kwargs = {
             "map_json_path": self.config.map_path,
             "simulation_steps": simulation_steps,
@@ -258,10 +280,7 @@ class CompetitionOnlineEnv:
             if save_in_disk:
                 file_dir = os.path.join(get_project_dir(), 'run_files')
                 os.makedirs(file_dir, exist_ok=True)
-                hash_obj = hashlib.sha256()
-                raw_name = get_current_time_str().encode() + os.urandom(16)
-                hash_obj.update(raw_name)
-                file_name = hash_obj.hexdigest()
+                file_name = get_hash_file_name()
                 file_path = os.path.join(file_dir, file_name)
                 with open(file_path, 'w') as f:
                     json.dump(kwargs, f)
@@ -340,6 +359,7 @@ print("{delimiter1}")
 
             gc.collect()
         self.left_timesteps -= simulation_steps
+        # print("old:", result[0]["starts"])
         return result
 
     def step(self, action):
@@ -356,22 +376,23 @@ print("{delimiter1}")
         self.num_task_finished += result["num_task_finished"]
         self.last_agent_pos = result["final_pos"]
         self.last_tasks = result["final_tasks"]
-        if self.starts is None:
-            assert(self.i == 1)
-            self.starts = result["starts"]
+        assert self.starts is not None
         self.update_paths(result["actual_paths"])
 
         # Reward is final step update throughput
-        reward = 0
+        reward = result["num_task_finished"]/self.config.simulation_time
+        reward *= self.reward_scale
         
         # terminated/truncate if no left time steps
         terminated = (self.left_timesteps <= 0)
         truncated = terminated
         
-        if terminated:
-            reward = self.num_task_finished/self.config.simulation_time
+        # if terminated:
+        #     # print("raw tp =", result["throughput"])
+        #     reward = result["num_task_finished"]
+        #     # print("rew =", reward)
 
-        result["throughput"] = reward
+        result["throughput"] = self.num_task_finished/self.config.simulation_time
         # Info includes the results
         info = {
             "result": result,
@@ -379,13 +400,16 @@ print("{delimiter1}")
             "curr_edge_weights": self.curr_edge_weights,
         }
 
+        if terminated:
+            info["episode"] ={"r": result["throughput"], "l": self.i}
+        
         return self._gen_obs(result), reward, terminated, truncated, info
 
     
     def reset(self, seed=None, options=None):
         self.i = 0
         self.num_task_finished = 0
-        self.left_timesteps = self.config.simulation_time
+        self.left_timesteps = self.config.simulation_time + self.config.warmup_time
         self.last_agent_pos = None
         self.last_tasks = None
         self.pos_hists = [[] for _ in range(self.config.num_agents)]
@@ -393,13 +417,29 @@ print("{delimiter1}")
         
         self.starts = None
         
-        obs_dim = 10 if not self.config.has_future_obs else 15
-        zero_obs = np.zeros((obs_dim, *self.comp_map.graph.shape), dtype=np.float32)
-        # print("in reset, obs.shape =", zero_obs.shape)
         self.last_wait_usage = np.zeros(np.prod(self.comp_map.graph.shape))
         self.last_edge_usage = np.zeros(4*np.prod(self.comp_map.graph.shape))
-        info = {"result": {}}
-        return zero_obs, info
+        
+        if self.config.reset_weights_path is None:
+            self.curr_edge_weights = np.ones(self.n_valid_edges)
+            self.curr_wait_costs = np.ones(self.n_valid_vertices)
+        else:
+            with open(self.config.reset_weights_path, "r") as f:
+                weights_json = json.load(f)
+            weights = weights_json["weights"]
+            self.curr_wait_costs = np.array(weights[:self.n_valid_vertices])
+            self.curr_edge_weights = np.array(weights[self.n_valid_vertices:])
+                
+        result = self._run_sim(init_weight=True)
+        self.last_agent_pos = result["final_pos"]
+        self.last_tasks = result["final_tasks"]
+        self.starts = result["starts"]
+        self.update_paths(result["actual_paths"])
+        
+        
+        obs = self._gen_obs(result, is_init=True)
+        info = {"result": result}
+        return obs, info
 
 
 if __name__ == "__main__":
@@ -410,6 +450,8 @@ if __name__ == "__main__":
     gin.parse_config_file(cfg_file_path)
     cfg = CompetitionConfig()
     cfg.has_future_obs = True
+    cfg.warmup_time = 10
+    cfg.past_traffic_interval = 1000
     comp_map = Map(cfg.map_path)
     domain = "competition"
     n_valid_vertices = get_n_valid_vertices(comp_map.graph, domain)
@@ -417,8 +459,12 @@ if __name__ == "__main__":
     
     env = CompetitionOnlineEnv(n_valid_vertices, n_valid_edges, cfg, seed=0)
     
-    env.reset()
+    np.set_printoptions(threshold=np.inf)
+    obs, info = env.reset()
+    # print(obs)
     
+    raise NotImplementedError
+
     done = False
     while not done:
         action = np.random.rand(n_valid_vertices+n_valid_edges)

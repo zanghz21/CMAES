@@ -470,12 +470,8 @@ class Manager:  # pylint: disable = too-many-instance-attributes
             logger,
         )
         if wandb.run is not None:
-            stats = {
-                "max": np.max(objs),
-                "mean": np.mean(objs), 
-                "min": np.min(objs)
-            }
-            wandb.log(stats)
+            self.stats["max"] = np.max(objs)
+            wandb.log(self.stats)
 
     def extract_metadata(self, r) -> dict:
         """Constructs metadata object from results of an evaluation."""
@@ -752,6 +748,7 @@ class Manager:  # pylint: disable = too-many-instance-attributes
             )
 
         self.metrics.add("Mean Evaluation", np.nanmean(objs), logger)
+        self.stats["curr_mean"] = np.nanmean(objs)
         self.overall_min_obj = min(self.overall_min_obj, np.nanmin(objs))
 
     def evaluate_initial_emulation_solutions(self):
@@ -805,6 +802,7 @@ class Manager:  # pylint: disable = too-many-instance-attributes
             self.msg_all(f"----- Outer Itr {self.outer_itrs_completed + 1} "
                          f"({self.total_evals} evals) -----")
             self.metrics.start_itr()
+            self.stats = {}
             self.archive.new_history_gen()
             if self.result_archive is not None:
                 self.result_archive.new_history_gen()

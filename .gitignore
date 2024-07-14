@@ -46,6 +46,7 @@ exp_/
 logs/
 dask-worker-space/
 slurm_logs/
+slurm_eval_logs/
 *scheduler_info.json
 comparison
 comparison_has_legend
@@ -196,6 +197,7 @@ cython_debug/
 
 run_files/
 wandb/
+tb_dir/
 
 CMakeFiles/
 cmake_install.cmake
