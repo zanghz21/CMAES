@@ -19,7 +19,6 @@ import warnings
 import numpy as np
 import shutil
 import multiprocessing
-import hashlib
 import subprocess
 
 from scipy.stats import entropy
@@ -37,7 +36,7 @@ from env_search.utils import (MIN_SCORE, competition_obj_types,
                               competition_env_str2number, get_n_valid_edges,
                               get_n_valid_vertices, load_pibt_default_config,
                               single_sim_done, get_project_dir)
-from env_search.utils.logging import get_current_time_str
+from env_search.utils.logging import get_current_time_str, get_hash_file_name
 from env_search.iterative_update.envs.env import CompetitionIterUpdateEnv, REDUNDANT_COMPETITION_KEYS
 from env_search.iterative_update.envs.online_env import CompetitionOnlineEnv
 from env_search.iterative_update.envs.online_env_new import CompetitionOnlineEnvNew
@@ -68,10 +67,7 @@ class CompetitionModule:
             if save_in_disk:
                 file_dir = os.path.join(get_project_dir(), 'run_files')
                 os.makedirs(file_dir, exist_ok=True)
-                hash_obj = hashlib.sha256()
-                raw_name = get_current_time_str().encode() + os.urandom(16)
-                hash_obj.update(raw_name)
-                file_name = hash_obj.hexdigest()
+                file_name = get_hash_file_name()
                 file_path = os.path.join(file_dir, file_name)
                 with open(file_path, 'w') as f:
                     json.dump(kwargs, f)
@@ -279,6 +275,89 @@ print("{delimiter1}")
 
         return curr_result, np.concatenate([curr_wait_costs, curr_edge_weights])
 
+    def evaluate_offline_reset_random(
+        self,
+        model_params: List,
+        eval_logdir: str,
+        n_valid_edges: int,
+        n_valid_vertices: int,
+        seed: int,
+    ):
+        """
+        random choose left-right weights when initialize
+        Args:
+            model_params (List): parameters of the update model
+            eval_logdir (str): log dir
+            n_valid_edges (int): number of valid edges
+            n_valid_vertices (int): number of valid vertices
+            seed (int): random seed
+        """
+        results = []
+        for i in range(self.config.random_iter):
+            run_config = copy.deepcopy(self.config)
+            
+            rng = np.random.default_rng(seed=seed)
+            p = rng.random()
+            r0 = rng.random() * (1 - run_config.left_right_ratio_bound) + run_config.left_right_ratio_bound
+            run_config.left_right_ratio = r0 if p < 0.5 else 1/r0
+            
+            iter_update_env = CompetitionIterUpdateEnv(
+                n_valid_vertices=n_valid_vertices,
+                n_valid_edges=n_valid_edges,
+                config=run_config,
+                seed=seed
+            )
+            comp_map = Map(run_config.map_path)
+            update_mdl_kwargs = {}
+            if run_config.iter_update_mdl_kwargs is not None:
+                update_mdl_kwargs = run_config.iter_update_mdl_kwargs
+            update_model: CompetitionBaseUpdateModel = \
+                run_config.iter_update_model_type(
+                    comp_map,
+                    model_params,
+                    n_valid_vertices,
+                    n_valid_edges,
+                    **update_mdl_kwargs,
+                )
+            all_throughputs = []
+            obs, info = iter_update_env.reset()
+            curr_result = info["result"]
+            curr_throughput = curr_result["throughput"]
+            all_throughputs.append(curr_throughput)
+            done = False
+            while not done:
+                # Get update value
+                wait_cost_update_vals, edge_weight_update_vals = \
+                    update_model.get_update_values_from_obs(obs)
+
+                # Perform update
+                obs, imp_throughput, done, _, info = iter_update_env.step(
+                    np.concatenate([wait_cost_update_vals,
+                                    edge_weight_update_vals]))
+
+                curr_throughput += imp_throughput
+                all_throughputs.append(curr_throughput)
+                curr_result = info["result"]
+
+            results.append(curr_result)
+            curr_wait_costs = info["curr_wait_costs"]
+            curr_edge_weights = info["curr_edge_weights"]
+
+        results_keys = curr_result.keys()
+        collect_result = {key: [] for key in results_keys}
+        for single_result in results:
+            for key in results_keys:
+                # print("key =", key, )                    
+                collect_result[key].append(single_result[key])
+        
+        for key in curr_result.keys():
+            # print("again, key =", key)
+            if key in ["edge_pair_usage", "tile_usage_list", "edge_usage_list", "vertex_wait_list"]:
+                collect_result[key] = np.array(collect_result[key][-1])
+            else:
+                collect_result[key] = np.mean(collect_result[key], axis=0)
+        return curr_result, np.concatenate([curr_wait_costs, curr_edge_weights])
+
 
     def evaluate_online_update(
         self,
@@ -287,7 +366,7 @@ print("{delimiter1}")
         n_valid_edges: int,
         n_valid_vertices: int,
         seed: int,
-        env_type: str = "old"
+        env_type: str = "new"
     ):
         """Run PIU
 
@@ -366,19 +445,19 @@ print("{delimiter1}")
             for key in keys:
                 collected_results[key].append(result_json[key])
 
-        # Post process result if necessary
-        tile_usage = np.array(collected_results.get("tile_usage"), dtype=float)
-        tile_usage /= np.sum(tile_usage)
-        # tile_usage = tile_usage.reshape(n_evals, *map_np_repaired.shape)
-        tile_usage_mean = np.mean(tile_usage, axis=1)
-        tile_usage_std = np.std(tile_usage, axis=1)
-        edge_pair_usage = np.array(collected_results.get("edge_pair_usage"))
-        edge_pair_usage_mean = collected_results.get("edge_pair_usage_mean")
-        edge_pair_usage_std = collected_results.get("edge_pair_usage_std")
+        # # Post process result if necessary
+        # tile_usage = np.array(collected_results.get("tile_usage"), dtype=float)
+        # tile_usage /= np.sum(tile_usage)
+        # # tile_usage = tile_usage.reshape(n_evals, *map_np_repaired.shape)
+        # tile_usage_mean = np.mean(tile_usage, axis=1)
+        # tile_usage_std = np.std(tile_usage, axis=1)
+        # edge_pair_usage = np.array(collected_results.get("edge_pair_usage"))
+        # edge_pair_usage_mean = collected_results.get("edge_pair_usage_mean")
+        # edge_pair_usage_std = collected_results.get("edge_pair_usage_std")
 
-        logger.info(f"Mean tile-usage: {np.mean(tile_usage_mean)}")
-        logger.info(f"Mean edge-pair-usage: {np.mean(edge_pair_usage_mean)}")
-        logger.info(f"Std of wait cost: {np.std(wait_costs)}")
+        # logger.info(f"Mean tile-usage: {np.mean(tile_usage_mean)}")
+        # logger.info(f"Mean edge-pair-usage: {np.mean(edge_pair_usage_mean)}")
+        # logger.info(f"Std of wait cost: {np.std(wait_costs)}")
 
         # Get objective based on type
         objs = None
@@ -394,15 +473,15 @@ print("{delimiter1}")
         metadata = CompetitionMetadata(
             objs=objs,
             throughput=collected_results.get("throughput"),
-            tile_usage=tile_usage,
-            tile_usage_mean=np.mean(tile_usage_mean),
-            tile_usage_std=np.mean(tile_usage_std),
+            # tile_usage=tile_usage,
+            # tile_usage_mean=np.mean(tile_usage_mean),
+            # tile_usage_std=np.mean(tile_usage_std),
             edge_weight_mean=np.mean(edge_weights),
             edge_weight_std=np.std(edge_weights),
             edge_weights=edge_weights,
-            edge_pair_usage=edge_pair_usage,
-            edge_pair_usage_mean=np.mean(edge_pair_usage_mean),
-            edge_pair_usage_std=np.mean(edge_pair_usage_std),
+            # edge_pair_usage=edge_pair_usage,
+            # edge_pair_usage_mean=np.mean(edge_pair_usage_mean),
+            # edge_pair_usage_std=np.mean(edge_pair_usage_std),
             wait_cost_mean=np.mean(wait_costs),
             wait_cost_std=np.std(wait_costs),
             wait_costs=wait_costs,

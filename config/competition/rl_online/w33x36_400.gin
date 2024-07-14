@@ -4,37 +4,14 @@ Manager.initial_mean = 5
 sigma0 = 5
 base_map_path = "maps/competition/human/pibt_warehouse_33x36_w_mode.json"
 
-CompetitionManager.lvl_width = 36
-CompetitionManager.lvl_height = 33
-CompetitionManager.bound_handle = "normalization"
-CompetitionManager.iterative_update = True
-CompetitionManager.online_update = True
-CompetitionManager.update_model_n_params = 4271
-
-CompetitionManager.n_evals = 1
-
 CompetitionConfig.num_agents=400
-CompetitionConfig.simulation_time = 1000
+CompetitionConfig.simulation_time = 500
 CompetitionConfig.iter_update_model_type = @CompetitionCNNUpdateModel
 CompetitionConfig.update_interval = 20
 CompetitionConfig.past_traffic_interval = 20
-CompetitionConfig.warmup_time = 20
+CompetitionConfig.warmup_time = 50
 CompetitionConfig.reset_weights_path = "maps/competition/ours/pibt_warehouse-33x36_w_mode_cma-es_400_agents_four-way-move.json"
-## EvolutionStrategyEmitter ##
-Manager.emitter_types = [(@EvolutionStrategyEmitter, 2)]
 
-EvolutionStrategyEmitter.sigma0 = %sigma0
-EvolutionStrategyEmitter.es = @CMAEvolutionStrategy
-EvolutionStrategyEmitter.ranker = "obj"
-EvolutionStrategyEmitter.selection_rule = "mu"
-EvolutionStrategyEmitter.restart_rule = "basic"
-EvolutionStrategyEmitter.batch_size = 25
-
-experiment.name = "Competition 33x36 400"
-Manager.is_em = False
-Manager.is_cma_mae = True # This CMA-ES is CMA-MAE with learning rate 0
-Manager.bounds = None
-Manager.max_evals = 200000
 
 CompetitionConfig.measure_names = ["wait_cost_std", "edge_weight_std"]
 CompetitionConfig.iter_update_max_iter = 5

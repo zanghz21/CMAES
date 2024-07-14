@@ -36,19 +36,19 @@ class CompetitionMetadata:
     objs: np.ndarray = None  # Objectives
     throughput : List[float] = None # throughput of the simulation
 
-    tile_usage: np.ndarray = None # (n_eval, n_row, n_col) 3D np array
-    # tile_usage: List[List[float]] = None # (n_eval, n_tiles) 2D array
-    tile_usage_mean: float = None
-    tile_usage_std: float = None
+    # tile_usage: np.ndarray = None # (n_eval, n_row, n_col) 3D np array
+    # # tile_usage: List[List[float]] = None # (n_eval, n_tiles) 2D array
+    # tile_usage_mean: float = None
+    # tile_usage_std: float = None
 
     # mean and std of the edge weights
     edge_weight_std: float = None
     edge_weight_mean: float = None
     edge_weights: List[float] = None
 
-    edge_pair_usage: np.ndarray = None # (n_valid_edge_pair) 2D np array
-    edge_pair_usage_mean: float = None
-    edge_pair_usage_std: float = None
+    # edge_pair_usage: np.ndarray = None # (n_valid_edge_pair) 2D np array
+    # edge_pair_usage_mean: float = None
+    # edge_pair_usage_std: float = None
 
     # mean and std of wait costs
     wait_cost_std: float = None

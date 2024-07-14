@@ -4,21 +4,17 @@ import gc
 import warnings
 import subprocess
 import os
-import hashlib
 import time
 
 from env_search.traffic_mapf.config import TrafficMAPFConfig
 from env_search.traffic_mapf.result import TrafficMAPFResult
 from env_search.utils import MIN_SCORE, get_project_dir
-from env_search.utils.logging import get_current_time_str
+from env_search.utils.logging import get_current_time_str, get_hash_file_name
 
 def generate_hash_file_path():
     file_dir = os.path.join(get_project_dir(), 'run_files')
     os.makedirs(file_dir, exist_ok=True)
-    hash_obj = hashlib.sha256()
-    raw_name = get_current_time_str().encode() + os.urandom(16)
-    hash_obj.update(raw_name)
-    file_name = hash_obj.hexdigest()
+    file_name = get_hash_file_name()
     file_path = os.path.join(file_dir, file_name)
     return file_path
     

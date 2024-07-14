@@ -1,17 +1,19 @@
 from env_search.competition.config import CompetitionConfig
 from env_search.competition.update_model.utils import Map, comp_uncompress_vertex_matrix, comp_uncompress_edge_matrix
 from env_search.utils import min_max_normalize, load_pibt_default_config, load_w_pibt_default_config, load_wppl_default_config, get_project_dir
-from env_search.utils.logging import get_current_time_str
+from env_search.utils.logging import get_current_time_str, get_hash_file_name
+from env_search.utils.task_generator import generate_task_and_agent
 import numpy as np
 import os
 from gymnasium import spaces
 import json
-import hashlib
 import time
 import subprocess
 import gc
 from simulators.wppl.py_sim import py_sim
 from env_search.iterative_update.envs.env import REDUNDANT_COMPETITION_KEYS
+import shutil
+
 
 DIRECTION2ID = {
     "R":0, "D":3, "L":2, "U":1, "W":4
@@ -46,34 +48,75 @@ class CompetitionOnlineEnvNew:
         else:
             self.lb, self.ub = None, None
 
-    def update_paths(self, pos_hists, agents_paths):
+    def update_paths_with_full_past(self, pos_hists, agents_paths):
         self.pos_hists = pos_hists
         self.move_hists = []
         for agent_path in agents_paths:
             self.move_hists.append(agent_path.replace(",", ""))
+    
+    def update_paths(self, agents_paths):
+        for agent_moves, agent_new_paths in zip(self.move_hists, agents_paths):
+            for s in agent_new_paths:
+                if s == ",":
+                    continue
+                agent_moves.append(s)
+        
+        for i, agent_pos in enumerate(self.pos_hists):
+            if len(agent_pos) == 0:
+                agent_pos.append(self.starts[i])
+            
+            last_h, last_w = agent_pos[-1]
+            for s in agents_paths[i]:
+                if s == ",":
+                    continue
+                elif s == "R":
+                    cur_pos = [last_h, last_w+1]
+                elif s == "D":
+                    cur_pos = [last_h+1, last_w]
+                elif s == "L":
+                    cur_pos = [last_h, last_w-1]
+                elif s == "U":
+                    cur_pos = [last_h-1, last_w]
+                elif s == "W":
+                    cur_pos = [last_h, last_w]
+                else:
+                    print(f"s = {s}")
+                    raise NotImplementedError
+                assert (cur_pos[0]>=0 and cur_pos[0]<self.comp_map.height \
+                    and cur_pos[1]>=0 and cur_pos[1]<self.comp_map.width)
+                agent_pos.append(cur_pos)
+                last_h, last_w = agent_pos[-1]
         
     def _gen_future_obs(self, results):
         "exec_future, plan_future, exec_move, plan_move"
         # 5 dim
         h, w = self.comp_map.graph.shape
         exec_future_usage = np.zeros((5, h, w))
-        for agent_path, agent_m in zip(results["exec_future"], results["exec_move"]):
-            # print("exec:", agent_path, agent_m)
+        for aid, (agent_path, agent_m) in enumerate(zip(results["exec_future"], results["exec_move"])):
+            if aid in results["agents_finish_task"]:
+                continue
+            goal_id = results["final_tasks"][aid]
             for (x, y), m in zip(agent_path[1:], agent_m[1:]):
+                if x*w+y == goal_id:
+                    break
                 d_id = DIRECTION2ID[m]
                 exec_future_usage[d_id, x, y] += 1
         
         plan_future_usage = np.zeros((5, h, w))
-        for agent_path, agent_m in zip(results["plan_future"], results["plan_move"]):
-            # print("plan:", agent_path, agent_m)
+        for aid, (agent_path, agent_m) in enumerate(zip(results["plan_future"], results["plan_move"])):
+            if aid in results["agents_finish_task"]:
+                continue
+            goal_id = results["final_tasks"][aid]
             for (x, y), m in zip(agent_path, agent_m):
+                if x*w+y == goal_id:
+                    break
                 d_id = DIRECTION2ID[m]
                 plan_future_usage[d_id, x, y] += 1
                 
         if exec_future_usage.sum()!=0:
             exec_future_usage = exec_future_usage/exec_future_usage.sum()
         if plan_future_usage.sum()!=0:
-            plan_future_usage = plan_future_usage/plan_future_usage.sum()            
+            plan_future_usage = plan_future_usage/plan_future_usage.sum()     
         
         return exec_future_usage, plan_future_usage
         
@@ -163,6 +206,7 @@ class CompetitionOnlineEnvNew:
             "num_agents": self.config.num_agents,
             "plan_time_limit": self.config.plan_time_limit,
             "seed": int(self.rng.integers(100000)),
+            "task_dist_change_interval": self.config.task_dist_change_interval, 
             "preprocess_time_limit": self.config.preprocess_time_limit,
             "file_storage_path": self.config.file_storage_path,
             "task_assignment_strategy": self.config.task_assignment_strategy,
@@ -170,6 +214,20 @@ class CompetitionOnlineEnvNew:
             "warmup_steps": self.config.warmup_time, 
             "update_gg_interval": self.config.update_interval
         }
+        if not self.config.gen_random:
+            file_dir = os.path.join(get_project_dir(), 'run_files', 'gen_task')
+            os.makedirs(file_dir, exist_ok=True)
+            sub_dir_name = get_hash_file_name()
+            self.task_save_dir = os.path.join(file_dir, sub_dir_name)
+            os.makedirs(self.task_save_dir, exist_ok=True)
+            
+            generate_task_and_agent(self.config.map_base_path, 
+                total_task_num=100000, num_agents=self.config.num_agents, 
+                save_dir=self.task_save_dir
+            )
+            
+            kwargs["agents_path"] = os.path.join(self.task_save_dir, "test.agent")
+            kwargs["tasks_path"] = os.path.join(self.task_save_dir, "test.task")
         if self.config.base_algo == "pibt":
             if self.config.has_future_obs:
                 kwargs["config"] = load_w_pibt_default_config()
@@ -230,8 +288,8 @@ class CompetitionOnlineEnvNew:
         
         # self.last_agent_pos = result["final_pos"]
         # self.last_tasks = result["final_tasks"]
-        # assert self.starts is not None
-        self.update_paths(result["past_paths"], result["actual_paths"])
+        assert self.starts is not None
+        self.update_paths(result["actual_paths"])
 
         new_task_finished = result["num_task_finished"]
         reward = new_task_finished - self.num_task_finished
@@ -240,13 +298,19 @@ class CompetitionOnlineEnvNew:
         # terminated/truncate if no left time steps
         terminated = result["done"]
         truncated = terminated
+        if terminated or truncated:
+            if not self.config.gen_random:
+                if os.path.exists(self.task_save_dir):
+                    shutil.rmtree(self.task_save_dir)
+                else:
+                    raise NotImplementedError
         
         result["throughput"] = self.num_task_finished / self.config.simulation_time
 
         # Info includes the results
-        result = {k: v for k, v in result.items() if k not in REDUNDANT_COMPETITION_KEYS}
+        sub_result = {k: v for k, v in result.items() if k not in REDUNDANT_COMPETITION_KEYS}
         info = {
-            "result": result,
+            "result": sub_result,
             "curr_wait_costs": self.curr_wait_costs,
             "curr_edge_weights": self.curr_edge_weights,
         }
@@ -261,7 +325,11 @@ class CompetitionOnlineEnvNew:
         self.last_agent_pos = None
         # self.last_tasks = None
         
-        # self.starts = None
+        self.starts = None
+        self.task_save_dir = None
+        
+        self.pos_hists = [[] for _ in range(self.config.num_agents)]
+        self.move_hists = [[] for _ in range(self.config.num_agents)]
         
         self.last_wait_usage = np.zeros(np.prod(self.comp_map.graph.shape))
         self.last_edge_usage = np.zeros(4*np.prod(self.comp_map.graph.shape))
@@ -275,13 +343,13 @@ class CompetitionOnlineEnvNew:
         self.simulator = py_sim(**kwargs)
         result_str = self.simulator.warmup()
         result = json.loads(result_str)
-        self.update_paths(result["past_paths"], result["actual_paths"])
+        self.starts = result["starts"]
+        self.update_paths(result["actual_paths"])
 
         obs = self._gen_obs(result, is_init=True)
         info = {"result": {}}
         return obs, info
-
-
+    
 if __name__ == "__main__":
     import gin
     from env_search.utils import get_n_valid_edges, get_n_valid_vertices
@@ -289,10 +357,18 @@ if __name__ == "__main__":
     cfg_file_path = "config/competition/test_env.gin"
     gin.parse_config_file(cfg_file_path)
     cfg = CompetitionConfig()
-    # cfg.has_future_obs = True
-    cfg.warmup_time = 10
-    cfg.simulation_time = 220
+    cfg.has_future_obs = False
+    cfg.warmup_time = 300
+    cfg.simulation_time = 1000
+    cfg.update_interval = 20
     cfg.past_traffic_interval = 10
+    cfg.task_dist_change_interval = 200
+    
+    # cfg.gen_random = False
+    # cfg.map_base_path = "maps/competition/online_map/sortation_small.json"
+    cfg.map_path = "maps/competition/online_map/sortation_small.json"
+    
+    
     comp_map = Map(cfg.map_path)
     domain = "competition"
     n_valid_vertices = get_n_valid_vertices(comp_map.graph, domain)
@@ -300,13 +376,20 @@ if __name__ == "__main__":
     
     env = CompetitionOnlineEnvNew(n_valid_vertices, n_valid_edges, cfg, seed=0)
     
+    from env_search.competition.eval import vis_arr
+    
     np.set_printoptions(threshold=np.inf)
     obs, info = env.reset()
+    for i in range(4, 5):
+        vis_arr(obs[i], name=f"step{env.i}_traffic{i}")
     
-
     done = False
     while not done:
-        action = np.random.rand(n_valid_vertices+n_valid_edges)
-        _, reward, terminated, truncated, info = env.step(action)
+        action = np.ones(n_valid_vertices+n_valid_edges)
+        obs, reward, terminated, truncated, info = env.step(action)
+        for i in range(4, 5):
+            vis_arr(obs[i], name=f"step{env.i}_traffic{i}")
         done = terminated or truncated
+    
+    print(info["result"]["throughput"])
             

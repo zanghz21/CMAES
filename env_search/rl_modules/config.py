@@ -7,7 +7,7 @@ class RLConfig:
     
     
     # policy
-    lr: float = 5e-4
+    lr: float = 1e-4
     entropy_coef: float = 0.0
     clip_range: float = 0.1
     gamma: float = 0.95

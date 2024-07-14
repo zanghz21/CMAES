@@ -4,6 +4,8 @@ import sys
 import time
 
 from dask.distributed import get_worker
+import hashlib
+import os
 
 
 def setup_logging(on_worker=True, level: int = logging.INFO):
@@ -29,3 +31,10 @@ def worker_log(msg: str, level: int = logging.INFO):
 def get_current_time_str():
     time_str = time.strftime("%y%m%d_%H%M")
     return time_str
+
+def get_hash_file_name():
+    hash_obj = hashlib.sha256()
+    raw_name = get_current_time_str().encode() + os.urandom(16)
+    hash_obj.update(raw_name)
+    hash_name = hash_obj.hexdigest()
+    return hash_name

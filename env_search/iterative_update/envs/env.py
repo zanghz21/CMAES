@@ -25,12 +25,14 @@ from env_search.utils import (
     load_wppl_default_config,
     get_project_dir,
 )
+from env_search.utils.task_generator import generate_task_and_agent
+
 import gc
 
-from env_search.utils.logging import get_current_time_str
-import hashlib
+from env_search.utils.logging import get_current_time_str, get_hash_file_name
 import time
 import subprocess
+import shutil
 
 
 class IterUpdateEnvBase(gym.Env):
@@ -103,7 +105,7 @@ class IterUpdateEnvBase(gym.Env):
         return NotImplementedError()
 
 
-REDUNDANT_COMPETITION_KEYS = ["final_pos, final_tasks", "actual_paths", "starts", "exec_future", "plan_future", "exec_move", "plan_move", "past_paths", "done"]
+REDUNDANT_COMPETITION_KEYS = ["final_pos, final_tasks", "actual_paths", "starts", "exec_future", "plan_future", "exec_move", "plan_move", "past_paths", "done", "agents_finish_task"]
 class CompetitionIterUpdateEnv(IterUpdateEnvBase):
 
     def __init__(
@@ -204,6 +206,8 @@ class CompetitionIterUpdateEnv(IterUpdateEnvBase):
         results = []
         kwargs = {
             # "cmd": cmd,
+            "left_w_weight": self.config.left_right_ratio, 
+            "right_w_weight": 1.0, 
             "map_json_path": self.config.map_path,
             "simulation_steps": self.config.simulation_time,
             "gen_random": self.config.gen_random,
@@ -212,6 +216,7 @@ class CompetitionIterUpdateEnv(IterUpdateEnvBase):
             "weights": json.dumps(edge_weights),
             "wait_costs": json.dumps(wait_costs),
             "plan_time_limit": self.config.plan_time_limit,
+            "task_dist_change_interval": self.config.task_dist_change_interval, 
             # "seed": int(self.rng.integers(100000)),
             "preprocess_time_limit": self.config.preprocess_time_limit,
             "file_storage_path": self.config.file_storage_path,
@@ -219,8 +224,19 @@ class CompetitionIterUpdateEnv(IterUpdateEnvBase):
             "num_tasks_reveal": self.config.num_tasks_reveal,
         }
         if not self.config.gen_random:
-            kwargs["agents_path"] = self.config.agents_path
-            kwargs["tasks_path"] = self.config.tasks_path
+            file_dir = os.path.join(get_project_dir(), 'run_files', 'gen_task')
+            os.makedirs(file_dir, exist_ok=True)
+            sub_dir_name = get_hash_file_name()
+            task_save_dir = os.path.join(file_dir, sub_dir_name)
+            os.makedirs(task_save_dir, exist_ok=True)
+            
+            generate_task_and_agent(self.config.map_base_path, 
+                total_task_num=100000, num_agents=self.config.num_agents, 
+                save_dir=task_save_dir
+            )
+            
+            kwargs["agents_path"] = os.path.join(task_save_dir, "test.agent")
+            kwargs["tasks_path"] = os.path.join(task_save_dir, "test.task")
         if self.config.base_algo == "pibt":
             kwargs["config"] = load_pibt_default_config()
         elif self.config.base_algo == "wppl":
@@ -239,10 +255,7 @@ class CompetitionIterUpdateEnv(IterUpdateEnvBase):
             if save_in_disk:
                 file_dir = os.path.join(get_project_dir(), 'run_files')
                 os.makedirs(file_dir, exist_ok=True)
-                hash_obj = hashlib.sha256()
-                raw_name = get_current_time_str().encode() + os.urandom(16)
-                hash_obj.update(raw_name)
-                file_name = hash_obj.hexdigest()
+                file_name = get_hash_file_name()
                 file_path = os.path.join(file_dir, file_name)
                 with open(file_path, 'w') as f:
                     json.dump(kwargs, f)
@@ -354,6 +367,12 @@ print("{delimiter1}")
         for key in keys:
             collected_results[key] = np.mean(collected_results[key], axis=0)
 
+        if not self.config.gen_random:
+            if os.path.exists(task_save_dir):
+                shutil.rmtree(task_save_dir)
+            else:
+                raise NotImplementedError
+        
         return collected_results
 
     def step(self, action):
@@ -617,6 +636,10 @@ if __name__ == "__main__":
     cfg = CompetitionConfig()
     # cfg.has_future_obs = True
     cfg.iter_update_n_sim = 1
+    cfg.gen_random = True
+    cfg.left_right_ratio = 10
+    # cfg.map_base_path = "maps/competition/online_map/sortation_small.json"
+    # cfg.map_path = "maps/competition/online_map/task_dist/sortation_small.json"
     comp_map = Map(cfg.map_path)
     domain = "competition"
     n_valid_vertices = get_n_valid_vertices(comp_map.graph, domain)
@@ -626,12 +649,13 @@ if __name__ == "__main__":
     
     np.set_printoptions(threshold=np.inf)
     obs, info = env.reset()
-    print(obs)
     
-    raise NotImplementedError
+    # raise NotImplementedError
 
     done = False
     while not done:
         action = np.random.rand(n_valid_vertices+n_valid_edges)
         _, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated
+    
+    print(info["result"]["throughput"])

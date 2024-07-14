@@ -90,14 +90,23 @@ def run_competition_iterative_update(
 
     competition_module = get_competition_module()
 
-    result, all_weights = competition_module.evaluate_iterative_update(
-        model_params,
-        eval_logdir,
-        n_valid_edges,
-        n_valid_vertices,
-        seed,
-    )
-
+    if competition_module.config.random_iter <= 0:
+        result, all_weights = competition_module.evaluate_iterative_update(
+            model_params,
+            eval_logdir,
+            n_valid_edges,
+            n_valid_vertices,
+            seed,
+        )
+    else:
+        result, all_weights = competition_module.evaluate_offline_reset_random(
+            model_params,
+            eval_logdir,
+            n_valid_edges,
+            n_valid_vertices,
+            seed,
+        )
+        
     logger.info("run_competition_iterative_update done after %f sec",
                 time.time() - start)
 

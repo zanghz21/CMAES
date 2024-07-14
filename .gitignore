@@ -196,6 +196,7 @@ cython_debug/
 
 run_files/
 wandb/
+tb_dir/
 
 CMakeFiles/
 cmake_install.cmake

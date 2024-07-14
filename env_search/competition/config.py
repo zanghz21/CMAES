@@ -51,6 +51,9 @@ class CompetitionConfig:
     warmup_time: int = 50
     simulation_time: int = gin.REQUIRED
     map_path: str = gin.REQUIRED
+    map_base_path: str = None # only used when gen_random=True, we use map w/o "e" or "w" in sim, but use original version to generate task
+    task_dist_change_interval: int = -1
+    
     num_agents: int = gin.REQUIRED
     update_interval: int = 50
     past_traffic_interval: int = 50
@@ -69,9 +72,14 @@ class CompetitionConfig:
     bounds: Tuple = None
     iter_update_model_type: Callable = None
     iter_update_max_iter: int = None
-    iter_update_n_sim: int = 1
+    iter_update_n_sim: int = 3
     iter_update_mdl_kwargs: Dict = None
     use_cumulative_traffic: bool = False
+    
+    # for reset random
+    random_iter: int = -1
+    left_right_ratio: float = 1
+    left_right_ratio_bound: float = 0.1
     
     # env
     has_future_obs: bool = False

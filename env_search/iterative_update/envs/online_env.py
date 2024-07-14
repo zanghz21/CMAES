@@ -1,13 +1,12 @@
 from env_search.competition.config import CompetitionConfig
 from env_search.competition.update_model.utils import Map, comp_uncompress_vertex_matrix, comp_uncompress_edge_matrix
 from env_search.utils import min_max_normalize, load_pibt_default_config, load_w_pibt_default_config, load_wppl_default_config, get_project_dir
-from env_search.utils.logging import get_current_time_str
+from env_search.utils.logging import get_current_time_str, get_hash_file_name
 import numpy as np
 import os
 from gymnasium import spaces
 import gymnasium
 import json
-import hashlib
 import time
 import subprocess
 import gc
@@ -44,6 +43,7 @@ class CompetitionOnlineEnv(gymnasium.Env):
             self.lb, self.ub = None, None
         
         self.rl_lb, self.rl_ub = (-10, 10)
+        self.reward_scale = 10
         self.action_space = spaces.Box(low=self.rl_lb, high=self.rl_ub,
                             shape=(self.n_valid_edges + self.n_valid_vertices,))
 
@@ -86,7 +86,8 @@ class CompetitionOnlineEnv(gymnasium.Env):
         h, w = self.comp_map.graph.shape
         exec_future_usage = np.zeros((5, h, w))
         for aid, (agent_path, agent_m) in enumerate(zip(results["exec_future"], results["exec_move"])):
-            # print("exec:", agent_path, agent_m)
+            if aid in results["agents_finish_task"]:
+                continue
             goal_id = results["final_tasks"][aid]
             for (x, y), m in zip(agent_path[1:], agent_m[1:]):
                 if x*w+y == goal_id:
@@ -96,7 +97,8 @@ class CompetitionOnlineEnv(gymnasium.Env):
         
         plan_future_usage = np.zeros((5, h, w))
         for aid, (agent_path, agent_m) in enumerate(zip(results["plan_future"], results["plan_move"])):
-            # print("plan:", agent_path, agent_m)
+            if aid in results["agents_finish_task"]:
+                continue
             goal_id = results["final_tasks"][aid]
             for (x, y), m in zip(agent_path, agent_m):
                 if x*w+y == goal_id:
@@ -278,10 +280,7 @@ class CompetitionOnlineEnv(gymnasium.Env):
             if save_in_disk:
                 file_dir = os.path.join(get_project_dir(), 'run_files')
                 os.makedirs(file_dir, exist_ok=True)
-                hash_obj = hashlib.sha256()
-                raw_name = get_current_time_str().encode() + os.urandom(16)
-                hash_obj.update(raw_name)
-                file_name = hash_obj.hexdigest()
+                file_name = get_hash_file_name()
                 file_path = os.path.join(file_dir, file_name)
                 with open(file_path, 'w') as f:
                     json.dump(kwargs, f)
@@ -382,6 +381,7 @@ print("{delimiter1}")
 
         # Reward is final step update throughput
         reward = result["num_task_finished"]/self.config.simulation_time
+        reward *= self.reward_scale
         
         # terminated/truncate if no left time steps
         terminated = (self.left_timesteps <= 0)
