@@ -228,6 +228,8 @@ class CompetitionOnlineEnvNew:
             
             kwargs["agents_path"] = os.path.join(self.task_save_dir, "test.agent")
             kwargs["tasks_path"] = os.path.join(self.task_save_dir, "test.task")
+        if self.config.task_dist_change_interval > 0:
+            kwargs["task_random_type"] = self.config.task_random_type
         if self.config.base_algo == "pibt":
             if self.config.has_future_obs:
                 kwargs["config"] = load_w_pibt_default_config()

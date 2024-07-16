@@ -293,13 +293,16 @@ print("{delimiter1}")
             seed (int): random seed
         """
         results = []
+        r = [0.1, 0.5, 1.0, 2, 10]
         for i in range(self.config.random_iter):
             run_config = copy.deepcopy(self.config)
             
-            rng = np.random.default_rng(seed=seed)
-            p = rng.random()
-            r0 = rng.random() * (1 - run_config.left_right_ratio_bound) + run_config.left_right_ratio_bound
-            run_config.left_right_ratio = r0 if p < 0.5 else 1/r0
+            # rng = np.random.default_rng(seed=seed)
+            # p = rng.random()
+            # r0 = rng.random() * (1 - run_config.left_right_ratio_bound) + run_config.left_right_ratio_bound
+            # run_config.left_right_ratio = r0 if p < 0.5 else 1/r0
+            
+            run_config.left_right_ratio = r[i]
             
             iter_update_env = CompetitionIterUpdateEnv(
                 n_valid_vertices=n_valid_vertices,
@@ -356,6 +359,64 @@ print("{delimiter1}")
                 collect_result[key] = np.array(collect_result[key][-1])
             else:
                 collect_result[key] = np.mean(collect_result[key], axis=0)
+        return curr_result, np.concatenate([curr_wait_costs, curr_edge_weights])
+    
+    def evaluate_offline_in_online_env(
+        self,
+        model_params: List,
+        eval_logdir: str,
+        n_valid_edges: int,
+        n_valid_vertices: int,
+        seed: int,
+        env_type: str = "new"
+    ):
+        """
+        random choose left-right weights when initialize
+        Args:
+            model_params (List): parameters of the update model
+            eval_logdir (str): log dir
+            n_valid_edges (int): number of valid edges
+            n_valid_vertices (int): number of valid vertices
+            seed (int): random seed
+        """
+        if env_type == "new":
+            env_cls = CompetitionOnlineEnvNew
+        elif env_type == "old":
+            env_cls = CompetitionOnlineEnv
+        else:
+            raise NotImplementedError
+        
+        iter_update_env = env_cls(
+            n_valid_vertices=n_valid_vertices,
+            n_valid_edges=n_valid_edges,
+            config=self.config,
+            seed=seed
+        )
+        comp_map = Map(self.config.map_path)
+        update_mdl_kwargs = {}
+        if self.config.iter_update_mdl_kwargs is not None:
+            update_mdl_kwargs = self.config.iter_update_mdl_kwargs
+        update_model: CompetitionBaseUpdateModel = \
+            self.config.iter_update_model_type(
+                comp_map,
+                model_params,
+                n_valid_vertices,
+                n_valid_edges,
+                **update_mdl_kwargs,
+            )
+        obs, info = iter_update_env.reset()
+        wait_cost_update_vals, edge_weight_update_vals = \
+                update_model.get_update_values_from_obs(obs)
+        action = np.concatenate([wait_cost_update_vals, edge_weight_update_vals])
+        done = False
+        while not done:
+            # Perform update
+            obs, imp_throughput, done, _, info = iter_update_env.step(action)
+
+        curr_result = info["result"]
+        curr_wait_costs = info["curr_wait_costs"]
+        curr_edge_weights = info["curr_edge_weights"]
+
         return curr_result, np.concatenate([curr_wait_costs, curr_edge_weights])
 
 

@@ -53,6 +53,9 @@ class CompetitionConfig:
     map_path: str = gin.REQUIRED
     map_base_path: str = None # only used when gen_random=True, we use map w/o "e" or "w" in sim, but use original version to generate task
     task_dist_change_interval: int = -1
+    task_random_type: str = "LR"
+    
+    offline_in_online_env: bool = False
     
     num_agents: int = gin.REQUIRED
     update_interval: int = 50
