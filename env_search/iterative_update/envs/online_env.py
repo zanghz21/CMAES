@@ -236,7 +236,7 @@ class CompetitionOnlineEnv(gymnasium.Env):
             simulation_steps = min(self.left_timesteps, self.config.update_interval)
         else:
             simulation_steps = min(self.left_timesteps, self.config.warmup_time)
-        
+
         kwargs = {
             "map_json_path": self.config.map_path,
             "simulation_steps": simulation_steps,
@@ -248,7 +248,7 @@ class CompetitionOnlineEnv(gymnasium.Env):
             "plan_time_limit": self.config.plan_time_limit,
             # "seed": int(self.rng.integers(100000)),
             "preprocess_time_limit": self.config.preprocess_time_limit,
-            "file_storage_path": self.config.file_storage_path,
+            "file_storage_path": self.config.file_storage_path + "ENV",
             "task_assignment_strategy": self.config.task_assignment_strategy,
             "num_tasks_reveal": self.config.num_tasks_reveal
         }
@@ -268,15 +268,30 @@ class CompetitionOnlineEnv(gymnasium.Env):
             kwargs["init_agent_pos"] = str(self.last_agent_pos)
         
         if self.last_tasks is not None:
-            kwargs["init_tasks"] = True
+            kwargs["init_task"] = True
             kwargs["init_task_ids"] = str(self.last_tasks)
-
+            
+        if self.left_timesteps <= self.next_update_dist_time:
+            assert self.config.task_dist_change_interval > 0
+            # generate left and right weights
+            p = self.rng.random()
+            r0 = self.rng.random() * (1 - self.config.left_right_ratio_bound) + self.config.left_right_ratio_bound
+            r = r0 if p < 0.5 else 1/r0
+            kwargs["left_w_weight"] = r
+            kwargs["right_w_weight"] = 1
+            while self.next_update_dist_time >= self.left_timesteps:
+                self.next_update_dist_time -= self.config.task_dist_change_interval
 
         if not manually_clean_memory:
-            kwargs["seed"] = int(self.rng.integers(100000))
+            # kwargs["seed"] = int(self.rng.integers(100000))
+            kwargs["seed"] = self.i
+            print("seed", self.i)
+            # print(kwargs)
+            from simulators.wppl import py_driver as wppl_py_driver
             result_jsonstr = wppl_py_driver.run(**kwargs)
             result = json.loads(result_jsonstr)
         else:
+            kwargs["seed"] = int(self.rng.integers(100000))
             if save_in_disk:
                 file_dir = os.path.join(get_project_dir(), 'run_files')
                 os.makedirs(file_dir, exist_ok=True)
@@ -299,9 +314,6 @@ file_path='{file_path}'
 with open(file_path, 'r') as f:
     kwargs_ = json.load(f)
 
-t0 = time.time()
-rng = np.random.default_rng(seed={self.seed})
-kwargs_["seed"] = int(rng.integers(100000))
 t0 = time.time()
 result_jsonstr = wppl_py_driver.run(**kwargs_)
 t1 = time.time()
@@ -373,9 +385,14 @@ print("{delimiter1}")
         self.curr_edge_weights = edge_weight_update_vals
 
         result = self._run_sim()
+        # print("raw:", result["num_task_finished"])
         self.num_task_finished += result["num_task_finished"]
         self.last_agent_pos = result["final_pos"]
         self.last_tasks = result["final_tasks"]
+        # print("start", result["starts"])
+        # print("pos", self.last_agent_pos)
+        # print("task", self.last_tasks)
+        # print("path", result["actual_paths"])
         assert self.starts is not None
         self.update_paths(result["actual_paths"])
 
@@ -415,6 +432,11 @@ print("{delimiter1}")
         self.pos_hists = [[] for _ in range(self.config.num_agents)]
         self.move_hists = [[] for _ in range(self.config.num_agents)]
         
+        if self.config.task_dist_change_interval > 0:
+            self.next_update_dist_time = self.config.simulation_time
+        else:
+            self.next_update_dist_time = -1
+        
         self.starts = None
         
         self.last_wait_usage = np.zeros(np.prod(self.comp_map.graph.shape))
@@ -434,11 +456,16 @@ print("{delimiter1}")
         self.last_agent_pos = result["final_pos"]
         self.last_tasks = result["final_tasks"]
         self.starts = result["starts"]
+        # print("start", self.starts)
+        # print("pos", self.last_agent_pos)
+        # print("task", self.last_tasks)
+        # print("path", result["actual_paths"])
         self.update_paths(result["actual_paths"])
         
         
         obs = self._gen_obs(result, is_init=True)
         info = {"result": result}
+        # raise NotImplementedError
         return obs, info
 
 
@@ -449,25 +476,28 @@ if __name__ == "__main__":
     cfg_file_path = "config/competition/test_env.gin"
     gin.parse_config_file(cfg_file_path)
     cfg = CompetitionConfig()
-    cfg.has_future_obs = True
-    cfg.warmup_time = 10
-    cfg.past_traffic_interval = 1000
+    cfg.has_future_obs = False
+    cfg.warmup_time = 20
+    cfg.simulation_time = 1000
+    cfg.past_traffic_interval = 100
+    cfg.task_dist_change_interval = -1
+    cfg.update_interval = 10
+    cfg.num_agents = 400
     comp_map = Map(cfg.map_path)
     domain = "competition"
     n_valid_vertices = get_n_valid_vertices(comp_map.graph, domain)
     n_valid_edges = get_n_valid_edges(comp_map.graph, bi_directed=True, domain=domain)
     
-    env = CompetitionOnlineEnv(n_valid_vertices, n_valid_edges, cfg, seed=0)
+    env = CompetitionOnlineEnv(n_valid_vertices, n_valid_edges, cfg, seed=2)
     
     np.set_printoptions(threshold=np.inf)
     obs, info = env.reset()
-    # print(obs)
-    
-    raise NotImplementedError
 
     done = False
     while not done:
-        action = np.random.rand(n_valid_vertices+n_valid_edges)
+        print(env.i, env.num_task_finished)
+        action = np.ones(n_valid_vertices+n_valid_edges)
         _, reward, terminated, truncated, info = env.step(action)
+
         done = terminated or truncated
-            
+        
