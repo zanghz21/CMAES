@@ -222,7 +222,10 @@ class CompetitionIterUpdateEnv(IterUpdateEnvBase):
             "file_storage_path": self.config.file_storage_path,
             "task_assignment_strategy": self.config.task_assignment_strategy,
             "num_tasks_reveal": self.config.num_tasks_reveal,
+            "h_update_late": self.config.h_update_late
         }
+        if self.config.task_dist_change_interval > 0:
+            kwargs["task_random_type"] = self.config.task_random_type
         if not self.config.gen_random:
             file_dir = os.path.join(get_project_dir(), 'run_files', 'gen_task')
             os.makedirs(file_dir, exist_ok=True)

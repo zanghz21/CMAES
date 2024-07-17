@@ -47,6 +47,7 @@ class CompetitionConfig:
 
     # Simulation
     base_algo: str = "pibt"
+    h_update_late: bool = True
     obj_type: str = gin.REQUIRED
     warmup_time: int = 50
     simulation_time: int = gin.REQUIRED

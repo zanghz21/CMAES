@@ -212,7 +212,8 @@ class CompetitionOnlineEnvNew:
             "task_assignment_strategy": self.config.task_assignment_strategy,
             "num_tasks_reveal": self.config.num_tasks_reveal, 
             "warmup_steps": self.config.warmup_time, 
-            "update_gg_interval": self.config.update_interval
+            "update_gg_interval": self.config.update_interval, 
+            "h_update_late": self.config.h_update_late
         }
         if not self.config.gen_random:
             file_dir = os.path.join(get_project_dir(), 'run_files', 'gen_task')

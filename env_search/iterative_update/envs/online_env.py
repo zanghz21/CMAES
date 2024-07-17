@@ -250,8 +250,11 @@ class CompetitionOnlineEnv(gymnasium.Env):
             "preprocess_time_limit": self.config.preprocess_time_limit,
             "file_storage_path": self.config.file_storage_path + "ENV",
             "task_assignment_strategy": self.config.task_assignment_strategy,
-            "num_tasks_reveal": self.config.num_tasks_reveal
+            "num_tasks_reveal": self.config.num_tasks_reveal, 
+            "h_update_late": self.config.h_update_late
         }
+        if self.config.task_dist_change_interval > 0:
+            kwargs["task_random_type"] = self.config.task_random_type
         if self.config.base_algo == "pibt":
             if self.config.has_future_obs:
                 kwargs["config"] = load_w_pibt_default_config()
