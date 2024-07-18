@@ -13,6 +13,8 @@ class Map:
         self.width = None
         self.graph = None
 
+        self.home_loc_ids = []
+        self.end_points_ids = []
         self.load(self.fp)
 
     def load(self, fp: str):
@@ -30,6 +32,10 @@ class Map:
                     line = f.readline().strip()
                     assert len(line) == self.width
                     for col, loc in enumerate(line):
+                        if loc == "e":
+                            self.end_points_ids.append([row, col])
+                        if loc == "w":
+                            self.home_loc_ids.append([row, col])
                         # obstacle
                         if loc == "@" or loc == "T":
                             self.graph[row, col] = 1
@@ -43,6 +49,10 @@ class Map:
                     line = map_json["layout"][row]
                     assert len(line) == self.width
                     for col, loc in enumerate(line):
+                        if loc == "e":
+                            self.end_points_ids.append([row, col])
+                        if loc == "w":
+                            self.home_loc_ids.append([row, col])
                         # obstacle
                         if loc == "@" or loc == "T":
                             self.graph[row, col] = 1

@@ -57,10 +57,11 @@ def vis_arr(arr_, mask=None, name="test"):
 def debug(cfg: CompetitionConfig, model_params, log_dir):
     cfg.simulation_time = 1000
     cfg.update_interval = 200
-    cfg.warmup_time = 1000
-    cfg.past_traffic_interval = 10
+    cfg.warmup_time = 100
+    cfg.task_dist_change_interval = -1
+    cfg.past_traffic_interval = 1000
     cfg.iter_update_n_sim = 1
-    
+    cfg.left_right_ratio = 1.0
     n_e, n_v = parse_map(cfg.map_path)
     
     from env_search.iterative_update.envs.online_env import CompetitionOnlineEnv
@@ -72,19 +73,19 @@ def debug(cfg: CompetitionConfig, model_params, log_dir):
     env_new = CompetitionOnlineEnvNew(n_v, n_e, cfg, seed=0)
     env_off = CompetitionIterUpdateEnv(n_v, n_e, cfg, seed=0)
     
-    old_obs, old_info = env_old.reset()
-    print("old:", old_info["result"]["final_pos"])
-    init_pos = old_info["result"]["final_pos"]
+    # old_obs, old_info = env_old.reset()
+    # print("old:", old_info["result"]["final_pos"])
+    # init_pos = old_info["result"]["final_pos"]
     
-    new_obs, info = env_new.reset()
+    # new_obs, info = env_new.reset()
     
     # raise NotImplementedError
-    # off_obs, off_info = env_off.reset()
+    off_obs, off_info = env_off.reset()
     
-    with open("maps/competition/ours/pibt_warehouse-33x36_w_mode_cma-es_400_agents_four-way-move.json", "r") as f:
-        weights_json = json.load(f)
-    weights = weights_json["weights"]
-    action = np.array(weights)
+    # with open("maps/competition/ours/pibt_warehouse-33x36_w_mode_cma-es_400_agents_four-way-move.json", "r") as f:
+    #     weights_json = json.load(f)
+    # weights = weights_json["weights"]
+    # action = np.array(weights)
     
     
     # raise NotImplementedError
@@ -94,24 +95,28 @@ def debug(cfg: CompetitionConfig, model_params, log_dir):
     done =False
     i=0
     
-    # obs = old_obs
     while not done:
+        obs = off_obs
+        # obs = new_obs
         i+=1
-        # wait_cost_update_vals, edge_weight_update_vals = update_model.get_update_values_from_obs(obs)
-        # action = np.concatenate([wait_cost_update_vals,
-        #                         edge_weight_update_vals])
-        # off_obs, rew, terminated, truncated, info = env_off.step(action)
+        wait_cost_update_vals, edge_weight_update_vals = update_model.get_update_values_from_obs(obs)
+        action = np.concatenate([wait_cost_update_vals,
+                                edge_weight_update_vals])
+        print(action.max(), action.min())
+        off_obs, rew, terminated, truncated, info = env_off.step(action)
+        # print("off:", info["result"]["throughput"])
         # old_obs, rew, terminated, truncated, info = env_old.step(action)
-        new_obs, rew, terminated, truncated, info = env_new.step(action)
+        # print(env_old.num_task_finished)
+        # new_obs, rew, terminated, truncated, info = env_new.step(action)
+        # print(env_new.num_task_finished)
         # print(old_obs - off_obs)
         # raise NotImplementedError
         done = terminated or truncated
-        
         # obs = off_obs
         
         # for j in range(5):
-        #     vis_arr(obs[j], name=f"usage{i}_{j}")
-        #     vis_arr(obs[5+j], name=f"gg{i}_{j}")
+        # vis_arr(obs[4], name=f"usage_off_r{cfg.left_right_ratio}_{i}")
+        # vis_arr(off_obs[9], name=f"guidance_off_r{cfg.left_right_ratio}_{i}")
         
     print(info["result"]["throughput"])
     

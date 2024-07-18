@@ -13,7 +13,7 @@ CompetitionManager.update_model_n_params = 4271
 CompetitionConfig.num_agents=400
 CompetitionConfig.simulation_time = 1000
 CompetitionConfig.iter_update_model_type = @CompetitionCNNUpdateModel
-CompetitionConfig.left_right_ratio = 10.0
+CompetitionConfig.left_right_ratio = 1.0
 
 ## EvolutionStrategyEmitter ##
 Manager.emitter_types = [(@EvolutionStrategyEmitter, 2)]

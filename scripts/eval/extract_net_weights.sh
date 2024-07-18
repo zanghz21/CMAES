@@ -1,4 +1,5 @@
 #!/bin/bash
+PROJECT_DIR=/media/project0/hongzhi/TrafficFlowMAPF
 
 USAGE="Usage: bash scripts/plot_tile_usage.sh LOGDIR MODE DOMAIN"
 
@@ -7,8 +8,8 @@ LOGDIR_TYPE="qd"
 MODE="extreme"
 DOMAIN="trafficMAPF"
 
-# LOGDIR="logs/2024-06-29_22-16-55_competition-highway-32x32-cma-es-random-map-400-agents-cnn-iter-update_KsDyKFQs"
-# DOMAIN="competition"
+LOGDIR="logs/2024-07-15_16-40-43_competition-highway-33x36-cma-es-warehouse-map-400-agents-cnn-iter-update_M7wQaGVH"
+DOMAIN="competition"
 
 # PROJECT_DIR=/media/project0/hongzhi/TrafficFlowMAPF/CMAES
 export PYTHONPATH=$PROJECT_DIR:$PYTHONPATH

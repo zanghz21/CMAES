@@ -193,7 +193,7 @@ def warehouse_large_experiments(base_kwargs, save_dir):
     for ag in [8000]:
         for i in range(5):
             base_kwargs["all_json_path"] = f"../Guided-PIBT/guided-pibt/benchmark-lifelong/warehouse_large_{i}_{ag}.json"
-            base_kwargs["save_path"] = get_eval_log_save_path(save_dir, map_path="../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/warehouse_large.map")
+            base_kwargs["save_path"] = get_eval_log_save_path(save_dir, map_path="warehouse_large.map", suffix=f"{ag}_{i}")
             t = time.time()
             result_json_s = simulator.run(**base_kwargs)
             sim_time = time.time()-t
@@ -205,27 +205,18 @@ def warehouse_large_experiments(base_kwargs, save_dir):
 
     
 def experiments(base_kwargs, save_dir, save_suffix):
-    t = time.time()
-    print("in py", base_kwargs["save_path"])
-    # base_kwargs["use_net_cache"] = False
-    # base_kwargs["gen_tasks"] = True
-    # base_kwargs["num_agents"] = 800
-    # base_kwargs["map_path"] = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/sortation_small_narrow.map"
-    # base_kwargs["num_tasks"] = 100000
-    # base_kwargs["seed"] = np.random.randint(1000)
-    # for i in range(10):
-    # print(base_kwargs["map_path"])
-    simulator = lns_py_driver if base_kwargs["use_lns"] else base_py_driver
-    result_json_s = simulator.run(**base_kwargs)
-    print("sim_time = ", time.time()-t)
-    print(result_json_s)
-    # raise NotImplementedError
+    # t = time.time()
+    # print("in py", base_kwargs["save_path"])
+    # simulator = lns_py_driver if base_kwargs["use_lns"] else base_py_driver
+    # result_json_s = simulator.run(**base_kwargs)
+    # print("sim_time = ", time.time()-t)
+    # print(result_json_s)
     
     # ggo_experiments(base_kwargs, save_dir)
     # sortation_medium_experiemnts(base_kwargs, save_dir, save_suffix)
     # game_experiments(base_kwargs, save_dir, save_suffix)
     # warehouse_small_experiments(base_kwargs)
-    # warehouse_large_experiments(base_kwargs, save_dir)
+    warehouse_large_experiments(base_kwargs, save_dir)
     
 def main(log_dir, vis=False, suffix=None):
     net_file = os.path.join(log_dir, "optimal_update_model.json")

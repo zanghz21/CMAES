@@ -13,6 +13,7 @@ LOGDIR=logs/2024-06-29_18-03-34_trafficmapf-warehouse-small-narrow_vBu5Aga6 # wi
 LOGDIR=logs/2024-06-29_18-03-20_trafficmapf-warehouse-60x100_tuimeGmk # 60x100, win_r=2
 LOGDIR=logs/2024-06-30_17-50-51_trafficmapf-warehouse-small-narrow_pzknu6cL # 30x120, win_r=2
 LOGDIR=logs/2024-07-02_15-14-38_trafficmapf-warehouse-30x120_Brsh8DtC
+LOGDIR=logs/2024-07-07_18-11-02_trafficmapf-warehouse-30x120_Npu7huRK
 
 singularity exec ${SINGULARITY_OPTS} ../singularity/ubuntu_onlineGGO.sif \
     python env_search/traffic_mapf/eval.py --logdir=$LOGDIR

@@ -19,12 +19,16 @@ test.json
 table.txt
 
 debug/
+data/
 
 env_search/comparison
 env_search/figure_data.json
 env_search/logs
 env_search/dask-worker-space
 *.png
+*.mp4
+video_file/
+il_results/
 **/*.pdf
 maps/human/to_show/img
 maps/ours/dsage_me_algo_fig/img

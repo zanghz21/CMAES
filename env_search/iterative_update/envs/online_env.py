@@ -2,6 +2,7 @@ from env_search.competition.config import CompetitionConfig
 from env_search.competition.update_model.utils import Map, comp_uncompress_vertex_matrix, comp_uncompress_edge_matrix
 from env_search.utils import min_max_normalize, load_pibt_default_config, load_w_pibt_default_config, load_wppl_default_config, get_project_dir
 from env_search.utils.logging import get_current_time_str, get_hash_file_name
+from env_search.iterative_update.envs.utils import visualize_simulation
 import numpy as np
 import os
 from gymnasium import spaces
@@ -47,6 +48,11 @@ class CompetitionOnlineEnv(gymnasium.Env):
         self.action_space = spaces.Box(low=self.rl_lb, high=self.rl_ub,
                             shape=(self.n_valid_edges + self.n_valid_vertices,))
 
+
+    def generate_video(self):
+        visualize_simulation(self.comp_map, self.pos_hists)
+        
+        
     def update_paths(self, agents_paths):
         for agent_moves, agent_new_paths in zip(self.move_hists, agents_paths):
             for s in agent_new_paths:
@@ -238,6 +244,8 @@ class CompetitionOnlineEnv(gymnasium.Env):
             simulation_steps = min(self.left_timesteps, self.config.warmup_time)
 
         kwargs = {
+            "left_w_weight": self.config.left_right_ratio, 
+            "right_w_weight": 1.0, 
             "map_json_path": self.config.map_path,
             "simulation_steps": simulation_steps,
             "gen_random": self.config.gen_random,
