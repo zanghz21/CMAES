@@ -20,7 +20,7 @@ TrafficMAPFManager.update_model_n_params = 560
 Manager.max_evals = 10000
 
 TrafficMAPFConfig.gen_tasks = True
-TrafficMAPFConfig.use_cached_nn = False
+TrafficMAPFConfig.use_cached_nn = True
 TrafficMAPFConfig.use_lns = True
 # TrafficMAPFConfig.all_json_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/sortation_small_0_800.json"
 TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/sortation_small.map"
