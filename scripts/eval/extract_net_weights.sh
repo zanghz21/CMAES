@@ -1,14 +1,15 @@
 #!/bin/bash
+PROJECT_DIR=/media/project0/hongzhi/TrafficFlowMAPF
 
 USAGE="Usage: bash scripts/plot_tile_usage.sh LOGDIR MODE DOMAIN"
 
-LOGDIR="slurm_logs/2024-07-03_11-02-21_trafficmapf-room_eu6K77WM"
+LOGDIR="logs/2024-07-07_18-11-02_trafficmapf-warehouse-30x120_Npu7huRK"
 LOGDIR_TYPE="qd"
 MODE="extreme"
 DOMAIN="trafficMAPF"
 
-# LOGDIR="logs/2024-06-29_22-16-55_competition-highway-32x32-cma-es-random-map-400-agents-cnn-iter-update_KsDyKFQs"
-# DOMAIN="competition"
+LOGDIR="logs/2024-07-15_16-40-43_competition-highway-33x36-cma-es-warehouse-map-400-agents-cnn-iter-update_M7wQaGVH"
+DOMAIN="competition"
 
 PROJECT_DIR=/media/project0/hongzhi/TrafficFlowMAPF/CMAES
 export PYTHONPATH=$PROJECT_DIR:$PYTHONPATH
@@ -44,7 +45,8 @@ if [ -n "$PROJECT_DIR" ]; then
   SINGULARITY_OPTS="$SINGULARITY_OPTS --bind ${PROJECT_DIR}:${PROJECT_DIR}"
 fi
 
-python env_search/analysis/tile_usage.py \
+singularity exec ${SINGULARITY_OPTS} ../singularity/ubuntu_onlineGGO.sif \
+  python env_search/analysis/tile_usage.py \
     --logdir "$LOGDIR" \
     --logdir-type "$LOGDIR_TYPE" \
     --mode "$MODE" \

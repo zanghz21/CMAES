@@ -3,6 +3,7 @@ from env_search.competition.update_model.utils import Map, comp_uncompress_verte
 from env_search.utils import min_max_normalize, load_pibt_default_config, load_w_pibt_default_config, load_wppl_default_config, get_project_dir
 from env_search.utils.logging import get_current_time_str, get_hash_file_name
 from env_search.utils.task_generator import generate_task_and_agent
+from env_search.iterative_update.envs.utils import visualize_simulation
 import numpy as np
 import os
 from gymnasium import spaces
@@ -48,6 +49,9 @@ class CompetitionOnlineEnvNew:
         else:
             self.lb, self.ub = None, None
 
+    def generate_video(self):
+        visualize_simulation(self.comp_map, self.pos_hists, "large_files_new/results.json")
+        
     def update_paths_with_full_past(self, pos_hists, agents_paths):
         self.pos_hists = pos_hists
         self.move_hists = []
@@ -199,6 +203,8 @@ class CompetitionOnlineEnvNew:
     def get_base_kwargs(self):
         # TODO: SEED!!!
         kwargs = {
+            "left_w_weight": self.config.left_right_ratio, 
+            "right_w_weight": 1.0, 
             "map_json_path": self.config.map_path,
             "simulation_steps": self.config.simulation_time,
             "gen_random": self.config.gen_random,
@@ -208,12 +214,13 @@ class CompetitionOnlineEnvNew:
             "seed": int(self.rng.integers(100000)),
             "task_dist_change_interval": self.config.task_dist_change_interval, 
             "preprocess_time_limit": self.config.preprocess_time_limit,
-            "file_storage_path": self.config.file_storage_path,
+            "file_storage_path": self.config.file_storage_path + "_new",
             "task_assignment_strategy": self.config.task_assignment_strategy,
             "num_tasks_reveal": self.config.num_tasks_reveal, 
             "warmup_steps": self.config.warmup_time, 
             "update_gg_interval": self.config.update_interval, 
-            "h_update_late": self.config.h_update_late
+            "h_update_late": self.config.h_update_late, 
+            # "save_paths": True
         }
         if not self.config.gen_random:
             file_dir = os.path.join(get_project_dir(), 'run_files', 'gen_task')
@@ -277,6 +284,23 @@ class CompetitionOnlineEnvNew:
         self.left_timesteps = max(0, self.left_timesteps)
         return result
 
+    def update_lr_weights(self, ratio):
+        # parse map left right location
+        assert len(self.comp_map.home_loc_ids) > 0
+        assert len(self.comp_map.end_points_ids) > 0
+        
+        home_prob = []
+        for home_loc in self.comp_map.home_loc_ids:
+            if home_loc[1] == 0:
+                home_prob.append(ratio)
+            else:
+                home_prob.append(1.0)
+        
+        end_prob = [1] * len(self.comp_map.end_points_ids)
+        total_prob = home_prob + end_prob
+        self.simulator.update_tasks_base_distribution(total_prob)
+        
+    
     def step(self, action):
         self.i += 1  # increment timestep
         # print(f"[step={self.i}]")
@@ -337,9 +361,16 @@ class CompetitionOnlineEnvNew:
         self.last_wait_usage = np.zeros(np.prod(self.comp_map.graph.shape))
         self.last_edge_usage = np.zeros(4*np.prod(self.comp_map.graph.shape))
         
-        self.curr_edge_weights = np.ones(self.n_valid_edges)
-        self.curr_wait_costs = np.ones(self.n_valid_vertices)
-        
+        if self.config.reset_weights_path is None:
+            self.curr_edge_weights = np.ones(self.n_valid_edges)
+            self.curr_wait_costs = np.ones(self.n_valid_vertices)
+        else:
+            with open(self.config.reset_weights_path, "r") as f:
+                weights_json = json.load(f)
+            weights = weights_json["weights"]
+            self.curr_wait_costs = np.array(weights[:self.n_valid_vertices])
+            self.curr_edge_weights = np.array(weights[self.n_valid_vertices:])
+            
         kwargs = self.get_base_kwargs()
         kwargs["weights"] = json.dumps(self.curr_edge_weights.tolist())
         kwargs["wait_costs"] = json.dumps(self.curr_wait_costs.tolist())

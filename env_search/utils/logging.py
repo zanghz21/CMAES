@@ -29,7 +29,7 @@ def worker_log(msg: str, level: int = logging.INFO):
 
 
 def get_current_time_str():
-    time_str = time.strftime("%y%m%d_%H%M")
+    time_str = time.strftime("%y%m%d_%H%M%S")
     return time_str
 
 def get_hash_file_name():

@@ -90,7 +90,8 @@ class CompetitionCNNUpdateModel(CompetitionBaseUpdateModel):
 
         # Set params
         self.num_params = n_params(self.model)
-        self.set_params(model_params)
+        if model_params is not None:
+            self.set_params(model_params)
 
     def get_update_values(
         self,
@@ -100,10 +101,13 @@ class CompetitionCNNUpdateModel(CompetitionBaseUpdateModel):
         edge_weight_matrix,
     ):
         # Normalize
-        wait_usage_matrix = min_max_normalize(wait_usage_matrix, 0, 1)
-        edge_usage_matrix = min_max_normalize(edge_usage_matrix, 0, 1)
-        wait_cost_matrix = min_max_normalize(wait_cost_matrix, 0.1, 1)
-        edge_weight_matrix = min_max_normalize(edge_weight_matrix, 0.1, 1)
+        # wait_usage_matrix = min_max_normalize(wait_usage_matrix, 0, 1)
+        # edge_usage_matrix = min_max_normalize(edge_usage_matrix, 0, 1)
+        # wait_usage_matrix = wait_usage_matrix/wait_usage_matrix.sum() * 100
+        # edge_usage_matrix = edge_usage_matrix/edge_usage_matrix.sum() * 100
+        
+        # wait_cost_matrix = min_max_normalize(wait_cost_matrix, 0.1, 1)
+        # edge_weight_matrix = min_max_normalize(edge_weight_matrix, 0.1, 1)
 
         h, w = self.comp_map.height, self.comp_map.width
         edge_usage_matrix = edge_usage_matrix.reshape(1, h, w, 4)
