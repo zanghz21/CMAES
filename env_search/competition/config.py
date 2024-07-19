@@ -87,4 +87,6 @@ class CompetitionConfig:
     
     # env
     has_future_obs: bool = False
+    has_task_obs: bool = False
+    has_curr_pos_obs: bool = False
     reset_weights_path: str = None
