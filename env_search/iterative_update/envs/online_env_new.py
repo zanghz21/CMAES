@@ -155,7 +155,27 @@ class CompetitionOnlineEnvNew:
         # print("new, wait_usage:", wait_usage.max(), "edge_usage:", edge_usage.max())
         return wait_usage, edge_usage
 
-
+    def _gen_task_obs(self, result):
+        h, w = self.comp_map.graph.shape
+        task_usage = np.zeros((1, h, w))
+        for aid, goal_id in enumerate(result["final_tasks"]):
+            x = goal_id // w
+            y = goal_id % w
+            task_usage[0, x, y] += 1
+        if task_usage.sum()!=0:
+            task_usage = task_usage/task_usage.sum() * 10
+        return task_usage
+        
+    def _gen_curr_pos_obs(self, result):
+        h, w = self.comp_map.graph.shape
+        pos_usage = np.zeros((1, h, w))
+        for aid, goal_id in enumerate(result["final_pos"]):
+            x = goal_id // w
+            y = goal_id % w
+            pos_usage[0, x, y] += 1
+        return pos_usage
+        
+    
     def _gen_obs(self, result, is_init=False):
         wait_usage_matrix, edge_usage_matrix = self._gen_traffic_obs_new(is_init)
         # wait_usage_matrix, edge_usage_matrix = self._gen_traffic_obs(result)
@@ -196,6 +216,12 @@ class CompetitionOnlineEnvNew:
         if self.config.has_future_obs:
             exec_future_usage, plan_future_usage = self._gen_future_obs(result)
             obs = np.concatenate([obs, exec_future_usage+plan_future_usage], axis=0, dtype=np.float32)
+        if self.config.has_task_obs:
+            task_obs = self._gen_task_obs(result)
+            obs = np.concatenate([obs, task_obs], axis=0, dtype=np.float32)
+        if self.config.has_curr_pos_obs:
+            curr_pos_obs = self._gen_curr_pos_obs(result)
+            obs = np.concatenate([obs, curr_pos_obs], axis=0, dtype=np.float32)
         # print("in step, obs.shape =", obs.shape)
         return obs
 
