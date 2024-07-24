@@ -75,7 +75,7 @@ def compute_save_action(comp_map: Map, n_v, n_e, expert_action, fill_value=-100)
     
 def main(log_dirs, data_dir):
     r_list = [0.1, 1.0, 10.0]
-    r_id = np.random.randint(len(r_list))
+    
     
     expert_actions = []
     for log_dir in log_dirs:
@@ -86,13 +86,14 @@ def main(log_dirs, data_dir):
     cfg = parse_config(log_dirs[0])
     cfg.simulation_time = 1000
     cfg.update_interval = 20
-    cfg.warmup_time = 1
+    cfg.warmup_time = 100
     cfg.task_dist_change_interval = -1
-    cfg.past_traffic_interval = 100
+    cfg.past_traffic_interval = 20
     cfg.h_update_late = False
     # cfg.reset_weights_path = os.path.join(log_dirs[2], "action.json")
     # cfg.iter_update_n_sim = 1
-    cfg.left_right_ratio = r_list[r_id]
+    
+    cfg.has_task_obs = True
     
     ### 2. env
     n_e, n_v = parse_map(cfg.map_path)
@@ -105,7 +106,11 @@ def main(log_dirs, data_dir):
     ### 4. experiment
     for iter in range(1000):
         data_list = []
+        
+        r_id = np.random.randint(len(r_list))
+        env_old.config.left_right_ratio = r_list[r_id]
         obs, info = env_old.reset()
+        prev_r_id = r_id
         
         done =False
         i=0
@@ -115,24 +120,25 @@ def main(log_dirs, data_dir):
             
             if i%10 == 0:
                 r_id = np.random.randint(len(r_list))
+
             
-            
-            expert_action = expert_actions[r_id]
+            expert_action = expert_actions[prev_r_id]
             save_action = compute_save_action(env_old.comp_map, n_v, n_e, expert_action)
             
             data_list.append({
-                "obs": obs, "action": save_action
+                "obs": obs[-1], "action": save_action
             })
             
             
             env_old.config.left_right_ratio = r_list[r_id]
             obs, rew, terminated, truncated, info = env_old.step(expert_action)
+            prev_r_id = r_id
             done = terminated or truncated
             
             
         print(info["result"]["throughput"])
         data_file = os.path.join(data_dir, f"{iter}.npy")
-        # np.save(data_file, data_list, allow_pickle=True)
+        np.save(data_file, data_list, allow_pickle=True)
     
 
 

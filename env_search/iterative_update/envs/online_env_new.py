@@ -177,42 +177,29 @@ class CompetitionOnlineEnvNew:
         
     
     def _gen_obs(self, result, is_init=False):
-        wait_usage_matrix, edge_usage_matrix = self._gen_traffic_obs_new(is_init)
-        # wait_usage_matrix, edge_usage_matrix = self._gen_traffic_obs(result)
-        
-        wait_costs = min_max_normalize(self.curr_wait_costs, 0.1, 1)
-        edge_weights = min_max_normalize(self.curr_edge_weights, 0.1, 1)
-        wait_cost_matrix = np.array(
-            comp_uncompress_vertex_matrix(self.comp_map, wait_costs))
-        edge_weight_matrix = np.array(
-            comp_uncompress_edge_matrix(self.comp_map, edge_weights))
-        # print(wait_costs.min(), wait_costs.max(), self.curr_wait_costs.min())
-        # wait_cost_matrix = np.array(
-        #     comp_uncompress_vertex_matrix(self.comp_map, self.curr_wait_costs))
-        # edge_weight_matrix = np.array(
-        #     comp_uncompress_edge_matrix(self.comp_map, self.curr_edge_weights))
-        
-        # wait_cost_matrix = min_max_normalize(wait_cost_matrix, 0.1, 1)
-        # edge_weight_matrix = min_max_normalize(edge_weight_matrix, 0.1, 1)
-
         h, w = self.comp_map.height, self.comp_map.width
-        
-        edge_weight_matrix = edge_weight_matrix.reshape(h, w, 4)
-        wait_cost_matrix = wait_cost_matrix.reshape(h, w, 1)
-        
-        edge_weight_matrix = np.moveaxis(edge_weight_matrix, 2, 0)
-        wait_cost_matrix = np.moveaxis(wait_cost_matrix, 2, 0)
-        
-        obs = np.concatenate(
-            [
-                edge_usage_matrix,
-                wait_usage_matrix,
-                edge_weight_matrix,
-                wait_cost_matrix,
-            ],
-            axis=0,
-            dtype=np.float32,
-        )
+        obs = np.zeros((0, h, w))
+        if self.config.has_traffic_obs:
+            wait_usage_matrix, edge_usage_matrix = self._gen_traffic_obs_new(is_init)
+            traffic_obs = np.concatenate([edge_usage_matrix, wait_usage_matrix], axis=0, dtype=np.float32)
+            obs = np.concatenate([obs, traffic_obs], axis=0, dtype=np.float32)
+            
+        if self.config.has_gg_obs:
+            wait_costs = min_max_normalize(self.curr_wait_costs, 0.1, 1)
+            edge_weights = min_max_normalize(self.curr_edge_weights, 0.1, 1)
+            wait_cost_matrix = np.array(
+                comp_uncompress_vertex_matrix(self.comp_map, wait_costs))
+            edge_weight_matrix = np.array(
+                comp_uncompress_edge_matrix(self.comp_map, edge_weights))
+            edge_weight_matrix = edge_weight_matrix.reshape(h, w, 4)
+            wait_cost_matrix = wait_cost_matrix.reshape(h, w, 1)
+            
+            edge_weight_matrix = np.moveaxis(edge_weight_matrix, 2, 0)
+            wait_cost_matrix = np.moveaxis(wait_cost_matrix, 2, 0)
+
+            gg_obs = np.concatenate([edge_weight_matrix, wait_cost_matrix], axis=0, dtype=np.float32)
+            obs = np.concatenate([obs, gg_obs], axis=0, dtype=np.float32)
+            
         if self.config.has_future_obs:
             exec_future_usage, plan_future_usage = self._gen_future_obs(result)
             obs = np.concatenate([obs, exec_future_usage+plan_future_usage], axis=0, dtype=np.float32)
@@ -222,7 +209,7 @@ class CompetitionOnlineEnvNew:
         if self.config.has_curr_pos_obs:
             curr_pos_obs = self._gen_curr_pos_obs(result)
             obs = np.concatenate([obs, curr_pos_obs], axis=0, dtype=np.float32)
-        # print("in step, obs.shape =", obs.shape)
+        
         return obs
 
             
@@ -423,6 +410,9 @@ if __name__ == "__main__":
     cfg.update_interval = 20
     cfg.past_traffic_interval = 10
     cfg.task_dist_change_interval = 200
+    cfg.has_traffic_obs = False
+    cfg.has_gg_obs = False
+    cfg.has_task_obs = True
     
     # cfg.gen_random = False
     # cfg.map_base_path = "maps/competition/online_map/sortation_small.json"
@@ -436,19 +426,20 @@ if __name__ == "__main__":
     
     env = CompetitionOnlineEnvNew(n_valid_vertices, n_valid_edges, cfg, seed=0)
     
-    from env_search.competition.eval import vis_arr
+    # from env_search.competition.eval import vis_arr
     
     np.set_printoptions(threshold=np.inf)
     obs, info = env.reset()
-    for i in range(4, 5):
-        vis_arr(obs[i], name=f"step{env.i}_traffic{i}")
+    # for i in range(4, 5):
+        # vis_arr(obs[i], name=f"step{env.i}_traffic{i}")
     
     done = False
     while not done:
+        print(obs.shape)
         action = np.ones(n_valid_vertices+n_valid_edges)
         obs, reward, terminated, truncated, info = env.step(action)
-        for i in range(4, 5):
-            vis_arr(obs[i], name=f"step{env.i}_traffic{i}")
+        # for i in range(4, 5):
+        #     vis_arr(obs[i], name=f"step{env.i}_traffic{i}")
         done = terminated or truncated
     
     print(info["result"]["throughput"])

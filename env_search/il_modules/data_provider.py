@@ -3,6 +3,8 @@ import torch
 from env_search.il_modules.config import ILArgs
 from env_search.utils import min_max_normalize
 import os
+from scipy.ndimage import convolve, gaussian_filter
+
 
 class DataProvider:
     def __init__(self, data_config: ILArgs) -> None:
@@ -28,8 +30,19 @@ class DataProvider:
                 obs = d['obs']
                 action = d['action']
                 
+                blur = False
+                if blur:
+                    # kernel = np.ones((3, 3))
+                    # padded_array = np.pad(obs, pad_width=1, mode='constant', constant_values=0)
+                    # # Apply the 3x3 kernel to the padded array
+                    # obs = convolve(padded_array, kernel, mode='constant', cval=0.0)
+                    obs = gaussian_filter(obs, sigma=0.2)
+                if len(obs.shape) == 2:
+                    obs = obs.reshape(1, *obs.shape)
+                
                 self.observations.append(obs)
-                self.actions.append(min_max_normalize(action, -10, 10))
+                # self.actions.append(min_max_normalize(action, -10, 10))
+                self.actions.append(action)
                   
         self.data_size = len(self.actions)
         print("data size =", self.data_size)

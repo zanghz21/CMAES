@@ -5,7 +5,7 @@ from env_search.competition.update_model.utils import Map, comp_uncompress_edge_
 from env_search.utils import get_n_valid_edges, get_n_valid_vertices
 from env_search.competition.config import CompetitionConfig
 from env_search.competition.module import CompetitionModule
-from env_search.competition.update_model.update_model import CompetitionCNNUpdateModel
+from env_search.competition.update_model.update_model import CompetitionCNNUpdateModel, CNNMLPModel, LargerCNNUpdateModel
 from env_search.utils.logging import get_current_time_str
 from env_search.utils import min_max_normalize
 
@@ -82,6 +82,7 @@ def main(log_dirs, model: CompetitionCNNUpdateModel, data_dir):
     cfg.task_dist_change_interval = -1
     cfg.past_traffic_interval = 100
     cfg.h_update_late = False
+    cfg.has_task_obs = True
     # cfg.reset_weights_path = os.path.join(log_dirs[2], "action.json")
     # cfg.iter_update_n_sim = 1
     cfg.left_right_ratio = r_list[r_id]
@@ -91,10 +92,7 @@ def main(log_dirs, model: CompetitionCNNUpdateModel, data_dir):
     from env_search.iterative_update.envs.online_env import CompetitionOnlineEnv
     env_old = CompetitionOnlineEnv(n_v, n_e, cfg, seed=0)
     
-    ### 3. save dir
-    os.makedirs(data_dir)
-    
-    ### 4. experiment
+    ### 3. experiment
     for iter in range(10):
         obs, info = env_old.reset()
         
@@ -107,13 +105,14 @@ def main(log_dirs, model: CompetitionCNNUpdateModel, data_dir):
             if i%10 == 0:
                 r_id = np.random.randint(len(r_list))
             
+            obs = obs[-1:]
             wait_cost_update_vals, edge_weight_update_vals = model.get_update_values_from_obs(obs)
             action = np.concatenate([wait_cost_update_vals, edge_weight_update_vals])
             action = min_max_normalize(action, 0.1, 100)
             expert_action = expert_actions[r_id]
             expert_action = min_max_normalize(expert_action, 0.1, 100)
             error = np.abs(expert_action - action)
-            print(error)
+            # print(error)
             
             env_old.config.left_right_ratio = r_list[r_id]
             obs, rew, terminated, truncated, info = env_old.step(action)
@@ -130,16 +129,20 @@ if __name__ == "__main__":
     logdirs = ["logs/2024-07-16_19-42-46_overfit-ratio-r_Yzaw8d3u", "logs/2024-07-16_20-14-48_overfit-ratio-r_MaYs6qv4", "logs/2024-07-16_19-41-01_overfit-ratio-r_QFZwgMKH"]
     map_path = "maps/competition/human/pibt_warehouse_33x36_w_mode.json"
     il_ckpt_path = "il_results/240717_202925/ckpt/ckpt_final.pth"
-    state_dict = torch.load(il_ckpt_path)
+    
     
     comp_map, n_e, n_v = parse_map(map_path)
-    student_model = CompetitionCNNUpdateModel(
-        comp_map, 
-        model_params=None, 
-        n_valid_vertices=n_v,
-        n_valid_edges=n_e, 
-        nc=10, 
-    )
+    # student_model = CompetitionCNNUpdateModel(
+    #     comp_map, 
+    #     model_params=None, 
+    #     n_valid_vertices=n_v,
+    #     n_valid_edges=n_e, 
+    #     nc=10, 
+    # )
+    il_ckpt_path = "il_results/240719_140527/ckpt/ckpt_final.pth"
+    state_dict = torch.load(il_ckpt_path)
+    student_model = CNNMLPModel(comp_map, nc=1)
+    # student_model = LargerCNNUpdateModel(comp_map, None, n_v, n_e, 1, kernel_size=5)
     student_model.model.load_state_dict(state_dict["state_dict"])
     
     

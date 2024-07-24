@@ -86,6 +86,8 @@ class CompetitionConfig:
     left_right_ratio_bound: float = 0.1
     
     # env
+    has_traffic_obs: bool = True
+    has_gg_obs: bool = True
     has_future_obs: bool = False
     has_task_obs: bool = False
     has_curr_pos_obs: bool = False

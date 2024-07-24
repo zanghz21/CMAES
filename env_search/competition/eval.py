@@ -5,6 +5,7 @@ from env_search.competition.update_model.utils import Map
 from env_search.utils import get_n_valid_edges, get_n_valid_vertices
 from env_search.competition.config import CompetitionConfig
 from env_search.competition.module import CompetitionModule
+from env_search.competition.competition_manager import CompetitionManager
 from env_search.utils.logging import get_current_time_str
 
 import numpy as np
@@ -21,7 +22,11 @@ def parse_config(log_dir):
     cfg_file = os.path.join(log_dir, "config.gin")
     gin.parse_config_file(cfg_file, skip_unknown=True)
     config = CompetitionConfig()
-    return config
+    try:
+        is_online = gin.query_parameter("CompetitionManager.online_update")
+    except ValueError:
+        is_online = False
+    return config, is_online
     
 def get_update_model(log_dir):
     update_model_file = os.path.join(log_dir, "optimal_update_model.json")
@@ -31,6 +36,13 @@ def get_update_model(log_dir):
     params = model_json["params"]
     model_params = np.array(params)
     return model_params
+
+def get_offline_weights(log_dir):
+    weights_file = os.path.join(log_dir, "optimal_weights.json")
+    with open(weights_file, "r") as f:
+        weights_json = json.load(f)
+    weights = weights_json["weights"]
+    return np.array(weights)
 
 def parse_map(map_path):
     comp_map = Map(map_path)
@@ -121,6 +133,33 @@ def debug(cfg: CompetitionConfig, model_params, log_dir):
     print(info["result"]["throughput"])
     
 
+def base_offline_exp(cfg: CompetitionConfig, log_dir):
+    cfg.h_update_late = False
+    cfg.past_traffic_interval = 20
+    cfg.simulation_time = 1000
+    # cfg.task_dist_change_interval = 200
+    cfg.update_interval = 1000
+    cfg.warmup_time = 100
+    
+    optimal_weights = get_offline_weights(log_dir)
+    n_e, n_v = parse_map(cfg.map_path)
+    
+    from env_search.iterative_update.envs.online_env_new import CompetitionOnlineEnvNew
+    
+    tp_list = []
+    for seed in range(5):
+        env = CompetitionOnlineEnvNew(n_v, n_e, cfg, seed=seed)
+        obs, info = env.reset()
+        done = False
+        while not done:
+            obs, rew, terminated, truncated, info = env.step(optimal_weights)
+            done = terminated or truncated
+        tp = info["result"]["throughput"]
+        print(tp)
+        tp_list.append(tp)
+        
+    print(np.mean(tp_list), np.std(tp_list))
+
 
 def base_exp(cfg: CompetitionConfig, model_params, log_dir): 
     n_e, n_v = parse_map(cfg.map_path)
@@ -129,7 +168,7 @@ def base_exp(cfg: CompetitionConfig, model_params, log_dir):
     tp_list = []   
     for seed in range(5):
         # res, _ = module.evaluate_iterative_update(model_params, eval_logdir, n_e, n_v, seed)
-        res, _ = module.evaluate_online_update(model_params, eval_logdir, n_e, n_v, seed, env_type="old")
+        res, _ = module.evaluate_online_update(model_params, eval_logdir, n_e, n_v, seed, env_type="new")
         tp = res['throughput']
         print(f"seed = {seed}, tp = {tp}")
         tp_list.append(tp)
@@ -178,10 +217,15 @@ def transfer_exp(cfg: CompetitionConfig, model_params, log_dir):
         
 
 def main(log_dir):
-    cfg = parse_config(log_dir)
-    model_params = get_update_model(log_dir)
-    # base_exp(cfg, model_params, log_dir)
-    debug(cfg, model_params, log_dir)
+    cfg, is_online = parse_config(log_dir)
+    print("is_online:", is_online)
+    if is_online:
+        model_params = get_update_model(log_dir)
+        base_exp(cfg, model_params, log_dir)
+    else:
+        base_offline_exp(cfg, log_dir)
+        
+    # debug(cfg, model_params, log_dir)
     # transfer_exp(cfg, model_params, log_dir)
     
 
