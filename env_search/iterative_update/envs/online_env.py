@@ -192,12 +192,16 @@ class CompetitionOnlineEnv(gymnasium.Env):
     
     def _gen_curr_pos_obs(self, result):
         h, w = self.comp_map.graph.shape
-        pos_usage = np.zeros((1, h, w))
-        for aid, goal_id in enumerate(result["final_pos"]):
-            x = goal_id // w
-            y = goal_id % w
-            pos_usage[0, x, y] += 1
+        pos_usage = np.zeros((2, h, w))
+        for aid, (curr_id, goal_id) in enumerate(zip(result["final_pos"], result["final_tasks"])):
+            x = curr_id // w
+            y = curr_id % w
             
+            gx = goal_id // w
+            gy = goal_id % w
+            
+            pos_usage[0, x, y] = (gx-x)/ h
+            pos_usage[1, x, y] = (gy-y)/w
         return pos_usage
     
     def _gen_obs(self, result, is_init=False):
@@ -515,6 +519,7 @@ if __name__ == "__main__":
     gin.parse_config_file(cfg_file_path)
     cfg = CompetitionConfig()
     cfg.has_future_obs = False
+    cfg.has_curr_pos_obs = True
     cfg.warmup_time = 20
     cfg.simulation_time = 1000
     cfg.past_traffic_interval = 100
