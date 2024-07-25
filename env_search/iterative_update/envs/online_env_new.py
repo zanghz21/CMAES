@@ -71,8 +71,6 @@ class CompetitionOnlineEnvNew:
             
             last_h, last_w = agent_pos[-1]
             
-            if i < 2:
-                print(f"step {env.i}: {agents_paths[i]}")
             for s in agents_paths[i]:
                 if s == ",":
                     continue
@@ -138,7 +136,7 @@ class CompetitionOnlineEnvNew:
         else:
             time_range = min(self.config.past_traffic_interval, self.config.warmup_time)
         
-        print("time range =", time_range)
+        # print("time range =", time_range)
         for t in range(time_range):
             for agent_i in range(self.config.num_agents):
                 prev_x, prev_y = self.pos_hists[agent_i][-(time_range+1-t)]
@@ -154,7 +152,7 @@ class CompetitionOnlineEnvNew:
                     #     print(prev_x, prev_y)
                     wait_usage[0, prev_x, prev_y] += 1
         
-        print("max", wait_usage.max(), wait_usage.argmax(), edge_usage.max(), edge_usage.argmax())
+        # print("max", wait_usage.max(), wait_usage.argmax(), edge_usage.max(), edge_usage.argmax())
         if wait_usage.sum() != 0:
             wait_usage = wait_usage/wait_usage.sum() * 100
         if edge_usage.sum() != 0:
