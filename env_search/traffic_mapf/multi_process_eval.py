@@ -99,6 +99,10 @@ def main(log_dir, n_workers, n_evals, all_results_dir, eval_lns=False):
         exp_name = "warehouse_large"
     elif "room" in train_map:
         exp_name = "room"
+    elif "33x36" in train_map:
+        exp_name = "ggo33x36"
+    elif "random" in train_map:
+        exp_name = "random"
     else:
         print(train_map)
         raise NotImplementedError

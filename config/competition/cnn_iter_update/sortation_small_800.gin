@@ -15,20 +15,20 @@ CompetitionConfig.simulation_time = 1000
 CompetitionConfig.iter_update_model_type = @CompetitionCNNUpdateModel
 
 ## EvolutionStrategyEmitter ##
-Manager.emitter_types = [(@EvolutionStrategyEmitter, 5)]
+Manager.emitter_types = [(@EvolutionStrategyEmitter, 2)]
 
 EvolutionStrategyEmitter.sigma0 = %sigma0
 EvolutionStrategyEmitter.es = @CMAEvolutionStrategy
 EvolutionStrategyEmitter.ranker = "obj"
 EvolutionStrategyEmitter.selection_rule = "mu"
 EvolutionStrategyEmitter.restart_rule = "basic"
-EvolutionStrategyEmitter.batch_size = 20
+EvolutionStrategyEmitter.batch_size = 25
 
 experiment.name = "sortation small 800"
 Manager.is_em = False
 Manager.is_cma_mae = True # This CMA-ES is CMA-MAE with learning rate 0
 Manager.bounds = None
-Manager.max_evals = 10000
+Manager.max_evals = 50000
 
 CompetitionConfig.measure_names = ["wait_cost_std", "edge_weight_std"]
 CompetitionConfig.iter_update_max_iter = 5
