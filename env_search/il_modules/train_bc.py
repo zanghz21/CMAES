@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from env_search.il_modules.config import ILArgs
 from env_search.il_modules.data_provider import DataProvider
-from env_search.competition.update_model import CompetitionCNNUpdateModel
+from env_search.competition.update_model.update_model import CompetitionCNNUpdateModel, CNNMLPModel, LargerCNNUpdateModel
 from env_search.utils.logging import get_current_time_str
 from env_search.competition.update_model.utils import Map
 from env_search.utils import get_n_valid_edges, get_n_valid_vertices
@@ -24,7 +24,7 @@ def weighted_mse(predict, label, weights):
     
     
 class BCTrainer:
-    def __init__(self, student_model: CompetitionCNNUpdateModel, il_args: ILArgs) -> None:
+    def __init__(self, student_model, il_args: ILArgs) -> None:
         self.cfg = il_args
         self.time_str = get_current_time_str()
         self.model = student_model.model.to(self.cfg.device)
@@ -112,14 +112,29 @@ if __name__ == '__main__':
     map_path = "maps/competition/human/pibt_warehouse_33x36_w_mode.json"
     il_args = ILArgs()
     comp_map, n_e, n_v = parse_map(map_path)
+    
+    nc = 6
     student_model = CompetitionCNNUpdateModel(
         comp_map, 
         model_params=None, 
         n_valid_vertices=n_v,
         n_valid_edges=n_e, 
-        nc=10, 
+        nc=nc,
+        kernel_size=5 
     )
-    
+    print(student_model.num_params)
+    raise NotImplementedError
+    student_model = CNNMLPModel(
+        comp_map, nc
+    )
+    # student_model = LargerCNNUpdateModel(
+    #     comp_map, 
+    #     model_params=None, 
+    #     n_valid_vertices=n_v,
+    #     n_valid_edges=n_e, 
+    #     nc=nc, 
+    #     kernel_size=5
+    # )
     bc_trainer = BCTrainer(student_model, il_args)
     bc_trainer.train()
     

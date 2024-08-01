@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 from env_search.traffic_mapf.multi_process_eval import EXP_AGENTS
+import argparse
 
 def parse_eval(base_dir, timestr):
     for map_type in EXP_AGENTS:
@@ -16,9 +17,11 @@ def parse_eval(base_dir, timestr):
             continue
         df = pd.read_csv(file, sep="\t")
         print(f"base_exp = {base_dir}, ag={ag}, num_exp = {len(df)}, avg tp = {df['tp'].mean()}, std tp = {df['tp'].std()}")
-        del df
 
 if __name__ == "__main__":
-    base_dir = "/ocean/projects/cis220074p/hzang/online/results/Guided-PIBT/NN_train_lns/ggo33x36/2024-07-26_14-26-33_trafficmapf-33x36_dGrsRyr3/logs"
-    time_str = "20240728_115042"
-    parse_eval(base_dir, time_str)
+    p = argparse.ArgumentParser()
+    p.add_argument("--base_dir", type=str)
+    p.add_argument("--time_str", type=str)
+    cfg = p.parse_args()
+    
+    parse_eval(cfg.base_dir, cfg.time_str)

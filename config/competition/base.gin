@@ -32,7 +32,7 @@ Manager.initial_mean = 5
 
 ## Competition Manager ##
 
-CompetitionManager.n_evals = 5
+CompetitionManager.n_evals = 3
 CompetitionManager.lvl_width = 12
 CompetitionManager.lvl_height = 9
 CompetitionManager.bi_directed = %bi_directed
@@ -82,4 +82,4 @@ CompetitionConfig.aggregation_type = "mean"
 CompetitionConfig.obj_type = "throughput"
 CompetitionConfig.bounds = %bounds
 CompetitionConfig.iter_update_model_type = @CompetitionCNNUpdateModel
-CompetitionConfig.iter_update_max_iter = 5
+CompetitionConfig.iter_update_max_iter = 1

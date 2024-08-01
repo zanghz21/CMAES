@@ -17,6 +17,8 @@ CompetitionConfig.num_agents=400
 CompetitionConfig.simulation_time = 1000
 CompetitionConfig.iter_update_model_type = @CompetitionCNNUpdateModel
 CompetitionConfig.task_dist_change_interval = 200
+CompetitionConfig.task_random_type = "LR"
+
 CompetitionConfig.update_interval = 20
 CompetitionConfig.past_traffic_interval = 20
 CompetitionConfig.warmup_time = 20

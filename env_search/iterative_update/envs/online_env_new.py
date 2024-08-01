@@ -70,6 +70,7 @@ class CompetitionOnlineEnvNew:
                 agent_pos.append(self.starts[i])
             
             last_h, last_w = agent_pos[-1]
+            
             for s in agents_paths[i]:
                 if s == ",":
                     continue
@@ -135,19 +136,23 @@ class CompetitionOnlineEnvNew:
         else:
             time_range = min(self.config.past_traffic_interval, self.config.warmup_time)
         
+        # print("time range =", time_range)
         for t in range(time_range):
             for agent_i in range(self.config.num_agents):
                 prev_x, prev_y = self.pos_hists[agent_i][-(time_range+1-t)]
                 # cur_x, cur_y = self.pos_hists[agent_i][-(self.config.past_traffic_interval-t)]
-                
+                # print(prev_x, prev_y)
                 
                 move = self.move_hists[agent_i][-(time_range-t)]
                 id = DIRECTION2ID[move]
                 if id < 4:
                     edge_usage[id, prev_x, prev_y] += 1
                 else:
+                    # if env.i > 0:
+                    #     print(prev_x, prev_y)
                     wait_usage[0, prev_x, prev_y] += 1
         
+        # print("max", wait_usage.max(), wait_usage.argmax(), edge_usage.max(), edge_usage.argmax())
         if wait_usage.sum() != 0:
             wait_usage = wait_usage/wait_usage.sum() * 100
         if edge_usage.sum() != 0:
@@ -168,51 +173,43 @@ class CompetitionOnlineEnvNew:
         
     def _gen_curr_pos_obs(self, result):
         h, w = self.comp_map.graph.shape
-        pos_usage = np.zeros((1, h, w))
-        for aid, goal_id in enumerate(result["final_pos"]):
-            x = goal_id // w
-            y = goal_id % w
-            pos_usage[0, x, y] += 1
+        pos_usage = np.zeros((2, h, w))
+        for aid, (curr_id, goal_id) in enumerate(zip(result["final_pos"], result["final_tasks"])):
+            x = curr_id // w
+            y = curr_id % w
+            
+            gx = goal_id // w
+            gy = goal_id % w
+            
+            pos_usage[0, x, y] = (gx-x)/ h
+            pos_usage[1, x, y] = (gy-y)/w
         return pos_usage
         
     
     def _gen_obs(self, result, is_init=False):
-        wait_usage_matrix, edge_usage_matrix = self._gen_traffic_obs_new(is_init)
-        # wait_usage_matrix, edge_usage_matrix = self._gen_traffic_obs(result)
-        
-        wait_costs = min_max_normalize(self.curr_wait_costs, 0.1, 1)
-        edge_weights = min_max_normalize(self.curr_edge_weights, 0.1, 1)
-        wait_cost_matrix = np.array(
-            comp_uncompress_vertex_matrix(self.comp_map, wait_costs))
-        edge_weight_matrix = np.array(
-            comp_uncompress_edge_matrix(self.comp_map, edge_weights))
-        # print(wait_costs.min(), wait_costs.max(), self.curr_wait_costs.min())
-        # wait_cost_matrix = np.array(
-        #     comp_uncompress_vertex_matrix(self.comp_map, self.curr_wait_costs))
-        # edge_weight_matrix = np.array(
-        #     comp_uncompress_edge_matrix(self.comp_map, self.curr_edge_weights))
-        
-        # wait_cost_matrix = min_max_normalize(wait_cost_matrix, 0.1, 1)
-        # edge_weight_matrix = min_max_normalize(edge_weight_matrix, 0.1, 1)
-
         h, w = self.comp_map.height, self.comp_map.width
-        
-        edge_weight_matrix = edge_weight_matrix.reshape(h, w, 4)
-        wait_cost_matrix = wait_cost_matrix.reshape(h, w, 1)
-        
-        edge_weight_matrix = np.moveaxis(edge_weight_matrix, 2, 0)
-        wait_cost_matrix = np.moveaxis(wait_cost_matrix, 2, 0)
-        
-        obs = np.concatenate(
-            [
-                edge_usage_matrix,
-                wait_usage_matrix,
-                edge_weight_matrix,
-                wait_cost_matrix,
-            ],
-            axis=0,
-            dtype=np.float32,
-        )
+        obs = np.zeros((0, h, w))
+        if self.config.has_traffic_obs:
+            wait_usage_matrix, edge_usage_matrix = self._gen_traffic_obs_new(is_init)
+            traffic_obs = np.concatenate([edge_usage_matrix, wait_usage_matrix], axis=0, dtype=np.float32)
+            obs = np.concatenate([obs, traffic_obs], axis=0, dtype=np.float32)
+            
+        if self.config.has_gg_obs:
+            wait_costs = min_max_normalize(self.curr_wait_costs, 0.1, 1)
+            edge_weights = min_max_normalize(self.curr_edge_weights, 0.1, 1)
+            wait_cost_matrix = np.array(
+                comp_uncompress_vertex_matrix(self.comp_map, wait_costs))
+            edge_weight_matrix = np.array(
+                comp_uncompress_edge_matrix(self.comp_map, edge_weights))
+            edge_weight_matrix = edge_weight_matrix.reshape(h, w, 4)
+            wait_cost_matrix = wait_cost_matrix.reshape(h, w, 1)
+            
+            edge_weight_matrix = np.moveaxis(edge_weight_matrix, 2, 0)
+            wait_cost_matrix = np.moveaxis(wait_cost_matrix, 2, 0)
+
+            gg_obs = np.concatenate([edge_weight_matrix, wait_cost_matrix], axis=0, dtype=np.float32)
+            obs = np.concatenate([obs, gg_obs], axis=0, dtype=np.float32)
+            
         if self.config.has_future_obs:
             exec_future_usage, plan_future_usage = self._gen_future_obs(result)
             obs = np.concatenate([obs, exec_future_usage+plan_future_usage], axis=0, dtype=np.float32)
@@ -222,7 +219,7 @@ class CompetitionOnlineEnvNew:
         if self.config.has_curr_pos_obs:
             curr_pos_obs = self._gen_curr_pos_obs(result)
             obs = np.concatenate([obs, curr_pos_obs], axis=0, dtype=np.float32)
-        # print("in step, obs.shape =", obs.shape)
+        
         return obs
 
             
@@ -418,16 +415,22 @@ if __name__ == "__main__":
     gin.parse_config_file(cfg_file_path)
     cfg = CompetitionConfig()
     cfg.has_future_obs = False
-    cfg.warmup_time = 300
+    cfg.num_agents = 400
+    cfg.warmup_time = 10
     cfg.simulation_time = 1000
-    cfg.update_interval = 20
-    cfg.past_traffic_interval = 10
-    cfg.task_dist_change_interval = 200
+    cfg.update_interval = 200
+    cfg.past_traffic_interval = 200
+    cfg.task_dist_change_interval = 500
+    cfg.has_traffic_obs = True
+    cfg.has_gg_obs = False
+    cfg.has_task_obs = False
+    cfg.has_curr_pos_obs = False
+    cfg.task_assignment_strategy = "online_generate"
+    cfg.task_random_type = "Gaussian"
     
     # cfg.gen_random = False
     # cfg.map_base_path = "maps/competition/online_map/sortation_small.json"
-    cfg.map_path = "maps/competition/online_map/sortation_small.json"
-    
+    cfg.map_path = "maps/competition/human/pibt_random_unweight_32x32.json"
     
     comp_map = Map(cfg.map_path)
     domain = "competition"
@@ -436,18 +439,31 @@ if __name__ == "__main__":
     
     env = CompetitionOnlineEnvNew(n_valid_vertices, n_valid_edges, cfg, seed=0)
     
-    from env_search.competition.eval import vis_arr
-    
+    def vis_arr(arr_, mask=None, name="test"):
+        arr = arr_.copy()
+        save_dir = "env_search/competition/plots"
+        os.makedirs(save_dir, exist_ok=True)
+        import matplotlib.pyplot as plt
+        if mask is not None:
+            arr = np.ma.masked_where(mask, arr)
+        cmap = plt.cm.Reds
+        # cmap.set_bad(color='black')
+        plt.imshow(arr, cmap=cmap, interpolation="none")
+        plt.colorbar()
+        plt.savefig(os.path.join(save_dir, f"{name}.png"))
+        plt.close()
+        
     np.set_printoptions(threshold=np.inf)
     obs, info = env.reset()
-    for i in range(4, 5):
+    for i in range(5):
         vis_arr(obs[i], name=f"step{env.i}_traffic{i}")
     
     done = False
     while not done:
+        print(obs.shape)
         action = np.ones(n_valid_vertices+n_valid_edges)
         obs, reward, terminated, truncated, info = env.step(action)
-        for i in range(4, 5):
+        for i in range(5):
             vis_arr(obs[i], name=f"step{env.i}_traffic{i}")
         done = terminated or truncated
     

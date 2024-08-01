@@ -47,7 +47,7 @@ class CompetitionConfig:
 
     # Simulation
     base_algo: str = "pibt"
-    h_update_late: bool = True
+    h_update_late: bool = False
     obj_type: str = gin.REQUIRED
     warmup_time: int = 50
     simulation_time: int = gin.REQUIRED
@@ -86,6 +86,8 @@ class CompetitionConfig:
     left_right_ratio_bound: float = 0.1
     
     # env
+    has_traffic_obs: bool = True
+    has_gg_obs: bool = True
     has_future_obs: bool = False
     has_task_obs: bool = False
     has_curr_pos_obs: bool = False

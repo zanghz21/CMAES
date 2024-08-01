@@ -19,9 +19,9 @@ CompetitionConfig.iter_update_model_type = @CompetitionCNNUpdateModel
 CompetitionConfig.task_dist_change_interval = 200
 CompetitionConfig.task_random_type = "Gaussian"
 
-CompetitionConfig.update_interval = 10
-CompetitionConfig.past_traffic_interval = 10
-CompetitionConfig.warmup_time = 100
+CompetitionConfig.update_interval = 20
+CompetitionConfig.past_traffic_interval = 20
+CompetitionConfig.warmup_time = 20
 CompetitionConfig.has_task_obs = True
 CompetitionConfig.h_update_late = False
 
