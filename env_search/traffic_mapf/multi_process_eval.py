@@ -37,7 +37,9 @@ EXP_AGENTS={
     "game": [2000, 4000, 6000, 8000, 10000, 12000], 
     "room": [500, 1000, 1500, 2000, 2500, 3000], 
     "sortation_small": [200, 400, 600, 800, 1000, 1200, 1400],
-    "warehouse_large": [2000, 4000, 6000, 8000, 10000, 12000]
+    "warehouse_large": [2000, 4000, 6000, 8000, 10000, 12000], 
+    "ggo33x36": [200, 300, 400, 500, 600, 700, 800], 
+    "random": [200, 300, 400, 500, 600, 700, 800]
 }
 
 def single_experients(base_kwargs, num_agents, seed, base_save_dir, timestr):
