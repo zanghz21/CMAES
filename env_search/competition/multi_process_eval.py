@@ -28,7 +28,8 @@ EXP_AGENTS = {
     "sortation_small": [200, 400, 600, 800, 1000, 1200, 1400],
     "ggo33x36": [200, 300, 400, 500, 600, 700, 800], 
     "random": [200, 300, 400, 500, 600, 700, 800], 
-    "room": [100, 500, 1000, 1500, 2000, 2500, 3000]
+    # "room": [100, 500, 1000, 1500, 2000, 2500, 3000], 
+    "room": [100, 200, 300, 400, 500, 600]
 }
 def parse_config(log_dir):
     cfg_file = os.path.join(log_dir, "config.gin")
@@ -74,7 +75,7 @@ def single_offline_exp(log_dir, optimal_weights, n_e, n_v, seed, base_save_dir, 
     cfg_.num_agents = num_agents
     
     
-    env = CompetitionOnlineEnvNew(n_v, n_e, cfg, seed=seed)
+    env = CompetitionOnlineEnvNew(n_v, n_e, cfg_, seed=seed)
     obs, info = env.reset()
     done = False
     while not done:
@@ -168,6 +169,7 @@ def main(log_dir, n_workers, n_evals, all_results_dir):
         cfg.simulation_time = 1000
         cfg.update_interval = 1000
         cfg.warmup_time = 100
+        cfg.iter_update_n_sim = 1
     
         save_dir = os.path.join(base_save_dir, algo, map_type, log_name)
         pool.starmap(

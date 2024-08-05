@@ -30,4 +30,8 @@ class TrafficMAPFConfig:
     num_tasks: int = 100000
     seed: int = 0
     task_assignment_strategy: str = "roundrobin"
+    
+    # varied dist
+    task_dist_change_interval: int = -1
+    task_random_type: str = "Gaussian"
         

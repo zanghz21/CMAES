@@ -55,13 +55,13 @@ class TrafficMAPFManager:
         assert self.iterative_update
         
         evaluation_seeds = self.rng.integers(np.iinfo(np.int32).max / 2,
-                                                size=n_sols,
+                                                size=n_sols * self.n_evals,
                                                 endpoint=True)
         eval_logdir = self.logdir.pdir(
             f"evaluations/eval_batch_{batch_idx}")
     
         iter_update_sols = [sol for sol in unrepaired_sols for _ in range(self.n_evals)]
-        all_seeds = [s for s in evaluation_seeds for _ in range(self.n_evals)]
+        all_seeds = evaluation_seeds
                     
         sim_start_time = time.time()
         sim_futures = [

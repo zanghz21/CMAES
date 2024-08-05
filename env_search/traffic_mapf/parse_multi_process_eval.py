@@ -18,11 +18,12 @@ def parse_eval_results(base_dir, time_str, n_evals):
     
     for ag in agent_ls:
         csv_dir = os.path.join(csv_base_dir, f"ag{ag}")
-        os.makedirs(csv_dir)
+        os.makedirs(csv_dir, exist_ok=True)
         csv_file = os.path.join(csv_dir, f"{time_str}.csv")
         with open(csv_file, mode="w", newline='') as f:
             writer = csv.writer(f, delimiter='\t')
-            writer.writerow(['seed', 'tp', 'sim_time'])
+            # writer.writerow(['seed', 'tp', 'sim_time'])
+            writer.writerow(['seed', 'tp'])
         
         for seed in range(n_evals):
             file_path = os.path.join(base_dir, f"ag{ag}", f"{seed}", f"{time_str}.json")
@@ -34,7 +35,8 @@ def parse_eval_results(base_dir, time_str, n_evals):
                 
             with open(csv_file, mode='a', newline='') as file:
                 writer = csv.writer(file, delimiter='\t')
-                writer.writerow([seed, results["throughput"], results["sim_time"]])
+                # writer.writerow([seed, results["throughput"], results["sim_time"]])
+                writer.writerow([seed, results["throughput"]])
                 
 
 if __name__ == "__main__":

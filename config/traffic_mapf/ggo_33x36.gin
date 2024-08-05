@@ -3,7 +3,7 @@ include "config/traffic_mapf/base.gin"
 experiment.name = "trafficMAPF 33x36"
 
 TrafficMAPFConfig.simu_time = 1000
-TrafficMAPFConfig.n_sim = 10
+TrafficMAPFConfig.n_sim = 1
 
 TrafficMAPFConfig.has_map = False
 TrafficMAPFConfig.has_path = False
@@ -19,8 +19,9 @@ TrafficMAPFManager.update_model_n_params = 560
 # TrafficMAPFConfig.net_type = "minidnn_mlp"
 # TrafficMAPFManager.update_model_n_params = 5254
 
-Manager.max_evals = 20000
+Manager.max_evals = 10000
 
 TrafficMAPFConfig.gen_tasks = True
-TrafficMAPFConfig.use_cached_nn = False
+TrafficMAPFConfig.use_cached_nn = True
+TrafficMAPFConfig.use_lns = False
 TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/ggo_maps/33x36.map"
