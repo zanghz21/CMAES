@@ -1,5 +1,7 @@
 import gin
 from dataclasses import dataclass
+from typing import Collection, Optional, Tuple, List, Callable, Dict
+
 
 @gin.configurable
 @dataclass
@@ -30,4 +32,8 @@ class TrafficMAPFConfig:
     num_tasks: int = 100000
     seed: int = 0
     task_assignment_strategy: str = "roundrobin"
+    
+    # offline sim cfg
+    iter_update_n_iters: int = 2
+    iter_update_mdl_kwargs: Dict = None
         

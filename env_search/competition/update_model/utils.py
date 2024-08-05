@@ -56,6 +56,9 @@ class Map:
                         # obstacle
                         if loc == "@" or loc == "T":
                             self.graph[row, col] = 1
+        else:
+            print(f"fp:[{fp}]")
+            raise NotImplementedError
         # self.print_graph(self.graph)
 
     def print_graph(self, graph: np.ndarray):
