@@ -156,7 +156,7 @@ class CompetitionIterUpdateEnv(IterUpdateEnvBase):
         # edge_usage_matrix = min_max_normalize(edge_usage_matrix, 0, 1)
         if wait_usage_matrix.sum()!=0:
             wait_usage_matrix = wait_usage_matrix/wait_usage_matrix.sum() * 100
-        if edge_weight_matrix.sum()!=0:
+        if edge_usage_matrix.sum()!=0:
             edge_usage_matrix = edge_usage_matrix/edge_usage_matrix.sum() * 100
         
         wait_cost_matrix = min_max_normalize(wait_cost_matrix, 0.1, 1)
@@ -395,7 +395,7 @@ print("{delimiter1}")
         self.curr_throughput = new_throughput
 
         # terminated/truncate only if max iter is passed
-        terminated = self.i >= self.max_iter
+        terminated = self.i > self.max_iter
         truncated = terminated
 
         # Info includes the results
@@ -639,6 +639,7 @@ if __name__ == "__main__":
     cfg = CompetitionConfig()
     # cfg.has_future_obs = True
     cfg.iter_update_n_sim = 1
+    cfg.iter_update_max_iter = 1
     cfg.gen_random = True
     cfg.left_right_ratio = 10
     # cfg.map_base_path = "maps/competition/online_map/sortation_small.json"

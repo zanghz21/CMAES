@@ -7,6 +7,8 @@ from env_search.utils.logging import get_current_time_str
 from tqdm import tqdm
 import logging
 import json
+from env_search.utils import set_spines_visible
+
 # logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
 
@@ -49,6 +51,38 @@ def draw_one_frame(comp_map: Map, agent_pos, task_pos, agents_color):
         ax.add_patch(circle)
     
     # Hide axes
+    # ax.axis('off')
+    return fig, ax
+
+def draw_one_task_frame(comp_map: Map, task_pos):
+    fig, ax = plt.subplots(figsize=(comp_map.width//5, comp_map.height//5))
+    ax.set_xlim(0, comp_map.width)
+    ax.set_ylim(comp_map.height, 0)
+    ax.figure.tight_layout()
+    # set_spines_visible(ax)
+    # Draw grid
+    for x in range(comp_map.width + 1):
+        ax.axhline(x, color='black', linewidth=1.0)
+    for x in range(comp_map.height + 1):
+        ax.axvline(x, color='black', linewidth=1.0)
+    
+    obstacle_pos = np.where(comp_map.graph==1.0)
+    # Draw obstacles
+    for pos in zip(obstacle_pos[0], obstacle_pos[1]):
+        square = plt.Rectangle((pos[1], pos[0]), 1, 1, color="black")
+        ax.add_patch(square)
+        
+    task_array = np.zeros_like(comp_map.graph)
+    for pos in task_pos:
+        task_array[pos[0], pos[1]] += 1
+    task_array = task_array/task_array.max()
+    
+    for r in range(comp_map.height):
+        for c in range(comp_map.width): 
+            if task_array[r, c] > 0:
+                color = (1, 0, 0, task_array[r, c])
+                circle = plt.Circle((c + 0.5, r + 0.5), 0.4, edgecolor=color, facecolor='none', linewidth=5)
+                ax.add_patch(circle)
     # ax.axis('off')
     return fig, ax
 
@@ -117,8 +151,40 @@ def visualize_simulation(comp_map: Map, agent_pos_hist, results_file=None):
     for filename in filenames:
         os.remove(filename)
 
+def visualize_task(comp_map: Map, results_file, total_steps):
+    timestr = get_current_time_str()
+    video_dir = os.path.join("video_file", timestr)
+    os.makedirs(video_dir, exist_ok=True)
+    
+    filenames = []
+    all_agents_tasks = parse_event(results_file, total_steps)
+    all_agents_tasks = np.array(all_agents_tasks) # [num_agents, T, 2]
+
+    for i in tqdm(range(0, total_steps, 50)):
+        task_pos = all_agents_tasks[:, i] if results_file is not None else []
+        fig, ax = draw_one_task_frame(comp_map, task_pos)
+        filename = os.path.join(video_dir, f"frame_{i:04d}.png")
+        filenames.append(filename)
+        plt.title(f"timestep = {i}")
+        plt.savefig(filename, bbox_inches='tight', rasterized=True)
+        plt.close(fig)
+
+    # Compile frames into a video
+    with imageio.get_writer(os.path.join(video_dir, "video.mp4"), fps=2) as writer:
+        for filename in filenames:
+            image = imageio.imread(filename)
+            writer.append_data(image)
+
+    # for filename in filenames:
+    #     os.remove(filename)
+
 if __name__ == "__main__":
     map_path = "maps/competition/human/pibt_warehouse_33x36_w_mode.json"
+    # map_path = "maps/competition/online_map/room-32-32-4.json"
+    # map_path = "maps/competition/online_map/sortation_small.json"
+    # map_path = "maps/competition/human/pibt_random_unweight_32x32.json"
     comp_map = Map(map_path)
     # visualize_simulation(comp_map)
-    parse_event("large_files_new/results.json", total_steps=200)
+    # parse_event("large_files_new/results.json", total_steps=200)
+    results_file = "/media/project0/hongzhi/TrafficFlowMAPF/Guided-PIBT/results.json"
+    visualize_task(comp_map, results_file, total_steps=1000)
