@@ -79,6 +79,8 @@ class TrafficFlowOfflineEnv(gym.Env):
             "num_tasks": self.config.num_tasks, 
             "hidden_size": self.config.hidden_size, 
             "task_assignment_strategy": self.config.task_assignment_strategy, 
+            "task_dist_change_interval": self.config.task_dist_change_interval, 
+            "task_random_type": self.config.task_random_type
         }
         if not self.config.gen_tasks:
             assert self.config.all_json_path is not None

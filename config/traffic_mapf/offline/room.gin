@@ -1,6 +1,8 @@
 include "config/traffic_mapf/base.gin"
 
-experiment.name = "trafficMAPF 33x36 offline"
+experiment.name = "trafficMAPF room offline"
+
+TrafficMAPFManager.n_evals = 5
 
 TrafficMAPFConfig.simu_time = 1000
 TrafficMAPFConfig.n_sim = 1
@@ -14,8 +16,9 @@ TrafficMAPFConfig.num_agents = 400
 TrafficMAPFManager.update_model_n_params = 3948
 TrafficMAPFManager.offline = True
 
-Manager.max_evals = 10000
+Manager.max_evals = 100000
 
 TrafficMAPFConfig.gen_tasks = True
-TrafficMAPFConfig.use_cached_nn = False
-TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/ggo_maps/33x36.map"
+TrafficMAPFConfig.use_lns = False
+TrafficMAPFConfig.use_cached_nn = True
+TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/room-32-32-4.map"
