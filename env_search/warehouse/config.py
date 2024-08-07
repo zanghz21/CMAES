@@ -1,7 +1,7 @@
 import gin
 
 from dataclasses import dataclass
-from typing import Collection, Tuple, Callable
+from typing import Collection, Tuple, Dict, Callable
 
 
 @gin.configurable
@@ -65,6 +65,7 @@ class WarehouseConfig:
     scenario: str = gin.REQUIRED,
     task: str = gin.REQUIRED,
     cutoffTime: int = gin.REQUIRED,
+    overallCutoffTime: int = 1000
     screen: int = gin.REQUIRED,
     solver: str = gin.REQUIRED,
     id: bool = gin.REQUIRED,
@@ -97,9 +98,19 @@ class WarehouseConfig:
     hamming_obj_weight: float = 1
     repair_n_threads: int = 1
     optimize_wait: bool = True
+    warmup_time: int = 20
+    update_gg_interval: int = 20
 
     # Iterative update. All params are optional b.c. iterative update is turned
     # off by default
     bounds: Tuple = None
     iter_update_model_type: Callable = None
-    iter_update_max_iter: int = 5
+    iter_update_max_iter: int = 1
+    iter_update_mdl_kwargs: Dict = None
+    
+    # env
+    has_gg_obs: bool = False
+    has_traffic_obs: bool = True
+    has_task_obs: bool = True
+    has_future_obs: bool = True
+    past_traffic_interval: int = 20

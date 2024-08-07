@@ -486,67 +486,7 @@ tuple<vector<vector<vector<double>>>, vector<vector<double>>> KivaSystem::conver
     return make_tuple(edge_usage_matrix, vertex_wait_matrix);
 }
 
-json KivaSystem::simulate(int simulation_time)
-{
-	std::cout << "*** Simulating " << seed << " ***" << std::endl;
-	this->simulation_time = simulation_time;
-	initialize();
-
-    std::vector<std::vector<int>> tasks_finished_timestep;
-
-    bool congested_sim = false;
-
-	for (; timestep < simulation_time; timestep += simulation_window)
-	{
-		if (this->screen > 0)
-			std::cout << "Timestep " << timestep << std::endl;
-
-		update_start_locations();
-		update_goal_locations();
-		solve();
-
-		// move drives
-		auto new_finished_tasks = move();
-		if (this->screen > 0)
-			std::cout << new_finished_tasks.size() << " tasks has been finished" << std::endl;
-
-		// update tasks
-        int n_tasks_finished_per_step = 0;
-		for (auto task : new_finished_tasks)
-		{
-			int id, loc, t;
-			std::tie(id, loc, t) = task;
-			this->finished_tasks[id].emplace_back(loc, t);
-			this->num_of_tasks++;
-            n_tasks_finished_per_step++;
-			if (this->hold_endpoints)
-				this->held_endpoints.erase(loc);
-		}
-
-        std::vector<int> curr_task_finished {
-            n_tasks_finished_per_step, timestep};
-        tasks_finished_timestep.emplace_back(curr_task_finished);
-
-		if (congested())
-		{
-			cout << "***** Timestep " << timestep
-                 << ": Too many traffic jams *****" << endl;
-            congested_sim = true;
-            if (this->stop_at_traffic_jam)
-            {
-                break;
-            }
-		}
-
-        // Overtime?
-        double runtime = (double)(clock() - this->start_time)/ CLOCKS_PER_SEC;
-        if (runtime >= this->overall_time_limit)
-        {
-            cout << "***** Timestep " << timestep << ": Overtime *****" << endl;
-            break;
-        }
-	}
-
+json KivaSystem::summarizeResult(){
 	// Compute objective
 	double throughput = (double)this->num_of_tasks / this->simulation_time;
 
@@ -728,10 +668,261 @@ json KivaSystem::simulate(int simulation_time)
         {"num_turns_std", num_turns_std},
         {"num_rev_action_mean", num_rev_action_mean},
         {"num_rev_action_std", num_rev_action_std},
-        {"tasks_finished_timestep", tasks_finished_timestep},
+        // {"tasks_finished_timestep", tasks_finished_timestep},
         {"avg_task_len", avg_task_len},
-        {"congested", congested_sim},
+        // {"congested", congested_sim},
         {"longest_common_path", subpath},
 	};
+	return result;
+}
+
+json KivaSystem::summarizeCurrResult(int summarize_interval, bool congested_sim){
+	json all_paths = json::array();
+	json full_paths = json::array();
+	json future_paths = json::array();
+	for (int k = 0; k < num_of_drives; k++){
+		int path_length = this->paths[k].size();
+		if (summarize_interval > timestep || summarize_interval + 1 > path_length){
+			std::cout << "warning: summarize interval ["<<summarize_interval<<"],path length ["<<path_length<<"]!"<<std::endl;
+			std::cout << "warning: timestep ["<<timestep<<"]!"<<std::endl;
+			summarize_interval = min(path_length-1, timestep);
+		}
+		json agent_path = json::array();
+		for (int j = timestep-summarize_interval; j <= timestep; j++){
+			State s = this->paths[k][j];
+			agent_path.push_back(s.location);
+		}
+		all_paths.push_back(agent_path);
+
+		json full_path = json::array();
+		for (int j = 0; j < path_length; j++){
+			State s = this->paths[k][j];
+			full_path.push_back(s.location);
+		}
+		full_paths.push_back(full_path);
+
+		json future_path = json::array();
+		for (int j = timestep; j < path_length; j++){
+			State s = this->paths[k][j];
+			future_path.push_back(s.location);
+		}
+		future_paths.push_back(future_path);
+	}
+
+	json goal_locs = json::array();
+	for (int i=0; i<this->goal_locations.size(); ++i){
+		int goal_loc = std::get<0>(this->goal_locations[i][0]);
+		goal_locs.push_back(goal_loc);
+	}
+
+	json result;
+	result["all_paths"] = all_paths;
+	result["full_paths"] = full_paths;
+	result["future_paths"] = future_paths;
+	result["goal_locs"] = goal_locs;
+	result["num_tasks_finished"] = this->num_of_tasks;
+	result["done"] = this->timestep >= this->total_sim_time || congested_sim;
+	return result;
+}
+
+void KivaSystem::set_total_sim_time(int total_sim_time, int warmup_time){
+	this->total_sim_time = total_sim_time + warmup_time;
+}
+
+json KivaSystem::warmup(int warmup_time){
+	std::cout << "*** Simulating " << seed << " ***" << std::endl;
+	// indicate current timestep
+	this->simulation_time = warmup_time; // TODO: 看一下有什么用，可能和 log 相关
+	initialize();
+
+	std::vector<std::vector<int>> tasks_finished_timestep;
+
+    bool congested_sim = false;
+
+	int start_timestep = timestep;
+
+	// std::cout << "simulation_win = "<< simulation_window<<std::endl;
+	for (; (timestep<this->simulation_time) && (timestep<this->total_sim_time); timestep += simulation_window)
+	{
+		if (this->screen > 0)
+			std::cout << "Timestep " << timestep << std::endl;
+
+		update_start_locations();
+		update_goal_locations();
+		solve();
+
+		// move drives
+		auto new_finished_tasks = move();
+		if (this->screen > 0)
+			std::cout << new_finished_tasks.size() << " tasks has been finished" << std::endl;
+
+		// update tasks
+        int n_tasks_finished_per_step = 0;
+		for (auto task : new_finished_tasks)
+		{
+			int id, loc, t;
+			std::tie(id, loc, t) = task;
+			this->finished_tasks[id].emplace_back(loc, t);
+			// this->num_of_tasks++;
+            n_tasks_finished_per_step++;
+			if (this->hold_endpoints)
+				this->held_endpoints.erase(loc);
+		}
+
+        std::vector<int> curr_task_finished {
+            n_tasks_finished_per_step, timestep};
+        tasks_finished_timestep.emplace_back(curr_task_finished);
+
+		if (congested())
+		{
+			cout << "***** Timestep " << timestep
+                 << ": Too many traffic jams *****" << endl;
+            congested_sim = true;
+            if (this->stop_at_traffic_jam)
+            {
+                break;
+            }
+		}
+
+        // Overtime?
+        double runtime = (double)(clock() - this->start_time)/ CLOCKS_PER_SEC;
+        if (runtime >= this->overall_time_limit)
+        {
+            cout << "***** Timestep " << timestep << ": Overtime *****" << endl;
+            break;
+        }
+	}
+	json result = this->summarizeCurrResult(timestep - start_timestep, congested_sim);
+	return result;
+}
+
+json KivaSystem::update_gg_and_step(int update_gg_interval){
+	std::cout << "*** Simulating " << seed << " ***" << std::endl;
+	this->simulation_time += update_gg_interval;
+
+	std::vector<std::vector<int>> tasks_finished_timestep;
+
+    bool congested_sim = false;
+
+	int start_timestep = timestep;
+
+	for (; (timestep<this->simulation_time) && (timestep<this->total_sim_time); timestep += simulation_window)
+	{
+		if (this->screen > 0)
+			std::cout << "Timestep " << timestep << std::endl;
+
+		update_start_locations();
+		update_goal_locations();
+		solve();
+
+		// move drives
+		auto new_finished_tasks = move();
+		if (this->screen > 0)
+			std::cout << new_finished_tasks.size() << " tasks has been finished" << std::endl;
+
+		// update tasks
+        int n_tasks_finished_per_step = 0;
+		for (auto task : new_finished_tasks)
+		{
+			int id, loc, t;
+			std::tie(id, loc, t) = task;
+			this->finished_tasks[id].emplace_back(loc, t);
+			this->num_of_tasks++;
+            n_tasks_finished_per_step++;
+			if (this->hold_endpoints)
+				this->held_endpoints.erase(loc);
+		}
+
+        std::vector<int> curr_task_finished {
+            n_tasks_finished_per_step, timestep};
+        tasks_finished_timestep.emplace_back(curr_task_finished);
+
+		if (congested())
+		{
+			cout << "***** Timestep " << timestep
+                 << ": Too many traffic jams *****" << endl;
+            congested_sim = true;
+            if (this->stop_at_traffic_jam)
+            {
+                break;
+            }
+		}
+
+        // Overtime?
+        double runtime = (double)(clock() - this->start_time)/ CLOCKS_PER_SEC;
+        if (runtime >= this->overall_time_limit)
+        {
+            cout << "***** Timestep " << timestep << ": Overtime *****" << endl;
+            break;
+        }
+	}
+	json result = this->summarizeCurrResult(timestep - start_timestep, congested_sim);
+	return result;
+}
+
+json KivaSystem::simulate(int simulation_time)
+{
+	std::cout << "*** Simulating " << seed << " ***" << std::endl;
+	this->simulation_time = simulation_time;
+	initialize();
+
+    std::vector<std::vector<int>> tasks_finished_timestep;
+
+    bool congested_sim = false;
+
+	for (; timestep < simulation_time; timestep += simulation_window)
+	{
+		if (this->screen > 0)
+			std::cout << "Timestep " << timestep << std::endl;
+
+		update_start_locations();
+		update_goal_locations();
+		solve();
+
+		// move drives
+		auto new_finished_tasks = move();
+		if (this->screen > 0)
+			std::cout << new_finished_tasks.size() << " tasks has been finished" << std::endl;
+
+		// update tasks
+        int n_tasks_finished_per_step = 0;
+		for (auto task : new_finished_tasks)
+		{
+			int id, loc, t;
+			std::tie(id, loc, t) = task;
+			this->finished_tasks[id].emplace_back(loc, t);
+			this->num_of_tasks++;
+            n_tasks_finished_per_step++;
+			if (this->hold_endpoints)
+				this->held_endpoints.erase(loc);
+		}
+
+        std::vector<int> curr_task_finished {
+            n_tasks_finished_per_step, timestep};
+        tasks_finished_timestep.emplace_back(curr_task_finished);
+
+		if (congested())
+		{
+			cout << "***** Timestep " << timestep
+                 << ": Too many traffic jams *****" << endl;
+            congested_sim = true;
+            if (this->stop_at_traffic_jam)
+            {
+                break;
+            }
+		}
+
+        // Overtime?
+        double runtime = (double)(clock() - this->start_time)/ CLOCKS_PER_SEC;
+        if (runtime >= this->overall_time_limit)
+        {
+            cout << "***** Timestep " << timestep << ": Overtime *****" << endl;
+            break;
+        }
+	}
+
+	json result = this->summarizeResult();
+	result["tasks_finished_timestep"] = tasks_finished_timestep;
+	result["congested"] = congested_sim;
 	return result;
 }

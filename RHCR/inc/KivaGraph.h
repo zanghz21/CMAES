@@ -19,6 +19,8 @@ public:
     bool load_map_from_jsonstr(
         std::string json_str, double left_w_weight, double right_w_weight);
     void preprocessing(bool consider_rotation, std::string log_dir); // compute heuristics
+    void reset_weights(bool consider_rotation, std::string log_dir, bool optimize_wait, std::vector<double> weights);
+    void update_map_weights(bool optimize_wait, std::vector<double> new_weights);
     bool get_r_mode() const;
     bool get_w_mode() const;
     double get_avg_task_len(
