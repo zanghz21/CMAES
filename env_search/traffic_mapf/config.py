@@ -34,7 +34,7 @@ class TrafficMAPFConfig:
     task_assignment_strategy: str = "roundrobin"
     
     # offline sim cfg
-    iter_update_n_iters: int = 2
+    iter_update_n_iters: int = 1
     iter_update_mdl_kwargs: Dict = None
         
     
