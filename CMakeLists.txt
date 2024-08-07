@@ -19,6 +19,8 @@ include_directories("RHCR/inc")
 # Get the source files except for the main API .cpp file
 file(GLOB SOURCES "RHCR/src/*.cpp")
 list(FILTER SOURCES EXCLUDE REGEX "RHCR/src/WarehouseSimulation.cpp")
+list(FILTER SOURCES EXCLUDE REGEX "RHCR/src/WarehouseSimulator.cpp")
+list(FILTER SOURCES EXCLUDE REGEX "RHCR/src/WarehouseSimulator.h")
 
 # Find Boost
 find_package( Boost 1.71.0 REQUIRED COMPONENTS program_options system filesystem)
@@ -30,6 +32,9 @@ add_subdirectory(pybind11)
 # Need to add other source files so that pybind11 can find the implementations
 pybind11_add_module(warehouse_sim "RHCR/src/WarehouseSimulation.cpp" ${SOURCES})
 target_link_libraries(warehouse_sim PRIVATE ${Boost_LIBRARIES})
+
+pybind11_add_module(WarehouseSimulator "RHCR/src/WarehouseSimulator.cpp" "RHCR/inc/WarehouseSimulator.h" ${SOURCES})
+target_link_libraries(WarehouseSimulator PRIVATE ${Boost_LIBRARIES})
 
 # # Add lifelone executable
 # add_executable(lifelong ${SOURCES} )

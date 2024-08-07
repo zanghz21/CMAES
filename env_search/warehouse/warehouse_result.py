@@ -36,46 +36,46 @@ class WarehouseMetadata:
     objs: np.ndarray = None  # Objectives
     throughput : List[float] = None # throughput of the simulation
 
-    tile_usage: np.ndarray = None # (n_eval, n_row, n_col) 3D np array
-    # tile_usage: List[List[float]] = None # (n_eval, n_tiles) 2D array
-    tile_usage_mean: float = None
-    tile_usage_std: float = None
+    # tile_usage: np.ndarray = None # (n_eval, n_row, n_col) 3D np array
+    # # tile_usage: List[List[float]] = None # (n_eval, n_tiles) 2D array
+    # tile_usage_mean: float = None
+    # tile_usage_std: float = None
 
     # mean and std of the edge weights
     edge_weights: List[float] = None
     edge_weight_std: float = None
     edge_weight_mean: float = None
 
-    edge_pair_usage: np.ndarray = None # (n_valid_edge_pair) 2D np array
-    edge_pair_usage_mean: float = None
-    edge_pair_usage_std: float = None
+    # edge_pair_usage: np.ndarray = None # (n_valid_edge_pair) 2D np array
+    # edge_pair_usage_mean: float = None
+    # edge_pair_usage_std: float = None
 
     # cost of wait action
     wait_costs: List[float] = None
 
-    num_wait: List[List[float]] = None # (n_eval, n_timestep) 2D array
-    num_wait_mean: float = None
-    num_wait_std: float = None
+    # num_wait: List[List[float]] = None # (n_eval, n_timestep) 2D array
+    # num_wait_mean: float = None
+    # num_wait_std: float = None
 
-    num_turns: List[List[float]] = None # (n_eval, n_agents) 2D array
-    num_turns_mean: float = None
-    num_turns_std: float = None
+    # num_turns: List[List[float]] = None # (n_eval, n_agents) 2D array
+    # num_turns_mean: float = None
+    # num_turns_std: float = None
 
-    finished_task_len: List[List[float]] = None # (n_eval, n_finished_tasks)
-                                                # 2D array
-    finished_len_mean: float = None
-    finished_len_std: float = None
+    # finished_task_len: List[List[float]] = None # (n_eval, n_finished_tasks)
+    #                                             # 2D array
+    # finished_len_mean: float = None
+    # finished_len_std: float = None
 
-    all_task_len_mean: float = None # Average length of all possible
-                                    # tasks in the map
-    tasks_finished_timestep: List[np.ndarray] = None
+    # all_task_len_mean: float = None # Average length of all possible
+    #                                 # tasks in the map
+    # tasks_finished_timestep: List[np.ndarray] = None
 
-    num_rev_action: List[List[float]] = None # (n_eval, n_timestep) 2D array
-    num_rev_action_mean: float = None
-    num_rev_action_std: float = None
+    # num_rev_action: List[List[float]] = None # (n_eval, n_timestep) 2D array
+    # num_rev_action_mean: float = None
+    # num_rev_action_std: float = None
 
-    subpath: List[List[int]] = None
-    subpath_len_mean: float = None
+    # subpath: List[List[int]] = None
+    # subpath_len_mean: float = None
 
 
 @dataclass

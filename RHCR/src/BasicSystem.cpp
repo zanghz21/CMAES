@@ -176,9 +176,11 @@ bool BasicSystem::load_locations()
 
 void BasicSystem::update_start_locations()
 {
+    // std::cout << "in update start location, timestep = "<<timestep<<std::endl;
     for (int k = 0; k < num_of_drives; k++)
     {
         starts[k] = State(paths[k][timestep].location, 0, paths[k][timestep].orientation);
+        // std::cout << "agent "<<k<<": loc="<<starts[k].location<<std::endl;
     }
 }
 

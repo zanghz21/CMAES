@@ -15,6 +15,9 @@ include_directories("inc")
 # Get the source files except for the main API .cpp file
 file(GLOB SOURCES "src/*.cpp")
 list(FILTER SOURCES EXCLUDE REGEX "src/WarehouseSimulation.cpp")
+list(FILTER SOURCES EXCLUDE REGEX "src/WarehouseSimulator.cpp")
+list(FILTER SOURCES EXCLUDE REGEX "src/WarehouseSimulator.h")
+
 
 # Find Boost
 find_package( Boost 1.49.0 REQUIRED COMPONENTS program_options system filesystem)

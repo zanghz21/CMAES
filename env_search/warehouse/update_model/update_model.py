@@ -146,6 +146,30 @@ class WarehouseCNNUpdateModel(WarehouseBaseUpdateModel):
 
         return np.array(wait_cost_update_vals), np.array(
             edge_weight_update_vals)
+        
+    def get_update_values_from_obs(
+        self, obs
+    ):
+        obs_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
+        with torch.no_grad():
+            output = self.model.forward(obs_tensor)
+            output = output.squeeze().cpu().numpy()
+
+        edge_weight_update_vals = np.moveaxis(output[:4], 0, 2)
+        wait_cost_update_vals = output[-1]
+        edge_weight_update_vals = kiva_compress_edge_weights(
+            self.map_np,
+            edge_weight_update_vals,
+            self.block_idxs,
+        )
+        wait_cost_update_vals = kiva_compress_wait_costs(
+            self.map_np,
+            wait_cost_update_vals,
+            self.block_idxs,
+        )
+
+        return np.array(wait_cost_update_vals), np.array(
+            edge_weight_update_vals)
 
     def _build_model(
         self,

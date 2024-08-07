@@ -17,7 +17,7 @@ from env_search.emitters import EvolutionStrategyEmitter, MapElitesBaselineWareh
 from env_search.schedulers import Scheduler
 from env_search.utils.logging import worker_log
 from env_search.utils.metric_logger import MetricLogger
-# from env_search.warehouse.warehouse_manager import WarehouseManager
+from env_search.warehouse.warehouse_manager import WarehouseManager
 from env_search.competition.competition_manager import CompetitionManager
 from env_search.traffic_mapf.traffic_mapf_manager import TrafficMAPFManager
 from env_search.learn2follow.learn2follow_manager import Learn2FollowManager

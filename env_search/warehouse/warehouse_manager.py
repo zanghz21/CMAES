@@ -25,6 +25,7 @@ from env_search.warehouse.emulation_model.networks import (
 from env_search.warehouse.module import (WarehouseModule, WarehouseConfig)
 from env_search.warehouse.run import (run_warehouse, repair_warehouse,
                                       run_warehouse_iterative_update,
+                                      run_warehouse_online, 
                                       process_warehouse_eval_result)
 from env_search.utils.worker_state import init_warehouse_module
 
@@ -80,6 +81,7 @@ class WarehouseManager:
         bound_handle: str = None,
         bounds=None,
         iterative_update: bool = False,
+        online_update: bool = False, 
         update_model_n_params: int = -1,
         n_evals: int = gin.REQUIRED,
         lvl_width: int = gin.REQUIRED,
@@ -139,6 +141,7 @@ class WarehouseManager:
 
         # Iterative update
         self.iterative_update = iterative_update
+        self.online_udpate = online_update
         self.update_model_n_params = update_model_n_params
 
     def em_init(self,
@@ -397,9 +400,10 @@ class WarehouseManager:
             curr_map_json = copy.deepcopy(self.base_map_json)
             curr_map_json["optimize_wait"] = self.optimize_wait
             sim_start_time = time.time()
+            run_func = run_warehouse_iterative_update if not self.online_udpate else run_warehouse_online
             sim_futures = [
                 self.client.submit(
-                    run_warehouse_iterative_update,
+                    run_func,
                     map_np=self.base_map_np,
                     map_json=curr_map_json,
                     num_agents=self.agent_num,
