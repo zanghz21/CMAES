@@ -243,6 +243,8 @@ class CompetitionOnlineEnvNew:
             "warmup_steps": self.config.warmup_time, 
             "update_gg_interval": self.config.update_interval, 
             "h_update_late": self.config.h_update_late, 
+            "dist_sigma": self.config.dist_sigma, 
+            "dist_K": self.config.dist_K
             # "save_paths": True
         }
         if not self.config.gen_random:
@@ -427,6 +429,7 @@ if __name__ == "__main__":
     cfg.has_curr_pos_obs = False
     cfg.task_assignment_strategy = "online_generate"
     cfg.task_random_type = "Gaussian"
+    cfg.dist_sigma = 1.0
     
     # cfg.gen_random = False
     # cfg.map_base_path = "maps/competition/online_map/sortation_small.json"
