@@ -36,7 +36,7 @@ SINGULARITY_OPTS="--cleanenv --env MALLOC_TRIM_THRESHOLD_=0"
 if [ -n "$PROJECT_DIR" ]; then
   SINGULARITY_OPTS="$SINGULARITY_OPTS --bind ${PROJECT_DIR}:${PROJECT_DIR}"
 fi
-singularity exec ${SINGULARITY_OPTS} singularity/ubuntu_warehouse.sif \
+singularity exec ${SINGULARITY_OPTS} ../singularity/ubuntu_onlineGGO.sif \
     python env_search/analysis/visualize_env.py \
         --map_filepath "$MAP_FILEPATH" \
         --store_dir "$STORE_DIR" \

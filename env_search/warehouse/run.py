@@ -168,7 +168,38 @@ def run_warehouse_iterative_update(
 
     return result, all_weights
 
+def run_warehouse_online(
+    map_np: np.ndarray,
+    map_json: str,
+    num_agents: int,
+    model_params: List,
+    eval_logdir: str,
+    n_valid_edges: int,
+    n_valid_vertices: int,
+    seed: int,
+):
+    start = time.time()
 
+    warehouse_module = get_warehouse_module()
+
+    result, all_weights = warehouse_module.evaluate_online(
+        map_np=map_np,
+        map_json=map_json,
+        num_agents=num_agents,
+        model_params=model_params,
+        eval_logdir=eval_logdir,
+        n_valid_edges=n_valid_edges,
+        n_valid_vertices=n_valid_vertices,
+        seed=seed,
+    )
+
+    logger.info("run_warehouse_online done after %f sec",
+                time.time() - start)
+
+    return result, all_weights
+    
+    
+    
 def process_warehouse_eval_result(
     edge_weights,
     wait_costs,

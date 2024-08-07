@@ -227,17 +227,8 @@ bool KivaGrid::load_unweighted_map_from_json(
 	return true;
 }
 
-bool KivaGrid::load_weighted_map_from_json(
-    json G_json,
-    double left_w_weight,
-    double right_w_weight)
-{
-	// Use load_unweighted_map_from_json to read in everything except for edge
-    // weights and wait costs (technically the weights will be initialized to
-    // 1). Then set the edge weights those that are given in the map json file.
-    load_unweighted_map_from_json(G_json, left_w_weight, right_w_weight);
-
-    // Read in the weights.
+void KivaGrid::update_map_weights(bool optimize_wait, std::vector<double> new_weights){
+// Read in the weights.
     // G_json["weights"] only contains the wait costs and edge weights of the
     // "valid" edges and vertices.
     // Valid edges refer to:
@@ -248,13 +239,13 @@ bool KivaGrid::load_weighted_map_from_json(
 
     // If we optimize wait, the first `this->n_valid_vertices` are wait costs
     // and the rests are edge weights
-    if (G_json["optimize_wait"])
+    if (optimize_wait)
     {
         for(int i = 0; i < this->rows * this->cols; i++)
         {
             if (this->types[i] != "Obstacle")
             {
-                this->weights[i][4] = G_json["weights"][j];
+                this->weights[i][4] = new_weights[j];
                 j += 1;
             }
         }
@@ -268,7 +259,7 @@ bool KivaGrid::load_weighted_map_from_json(
         // cost of wait.
         for(int i = 0; i < this->rows * this->cols; i++)
         {
-            this->weights[i][4] = G_json["weights"][0];
+            this->weights[i][4] = new_weights[0];
         }
         j = 1;
     }
@@ -286,7 +277,7 @@ bool KivaGrid::load_weighted_map_from_json(
                 get_Manhattan_distance(i, i + this->move[dir]) <= 1 &&
                 this->types[i + this->move[dir]] != "Obstacle")
             {
-                double curr_weight = G_json["weights"][j];
+                double curr_weight = new_weights[j];
                 // If the given weight is -1, the corresponding edge should be
                 // blocked.
                 if (curr_weight == -1)
@@ -296,6 +287,19 @@ bool KivaGrid::load_weighted_map_from_json(
             }
         }
     }
+}
+
+bool KivaGrid::load_weighted_map_from_json(
+    json G_json,
+    double left_w_weight,
+    double right_w_weight)
+{
+	// Use load_unweighted_map_from_json to read in everything except for edge
+    // weights and wait costs (technically the weights will be initialized to
+    // 1). Then set the edge weights those that are given in the map json file.
+    load_unweighted_map_from_json(G_json, left_w_weight, right_w_weight);
+
+    this->update_map_weights(G_json["optimize_wait"], G_json["weights"]);
     if (G_json["optimize_wait"])
         cout << "Optimizing all wait costs and edge weights" << endl;
     else
@@ -616,6 +620,51 @@ void KivaGrid::preprocessing(bool consider_rotation, std::string log_dir)
 		cout << table_save_path << endl;
 		save_heuristics_table(table_save_path.string());
 	}
+
+	double runtime = (std::clock() - t) / CLOCKS_PER_SEC;
+	std::cout << "Done! (" << runtime << " s)" << std::endl;
+}
+
+void KivaGrid::reset_weights(bool consider_rotation, std::string log_dir, bool optimize_wait, std::vector<double> weights)
+{
+	// update weights
+	this->update_map_weights(optimize_wait, weights);
+
+	this->heuristics.clear();
+	std::cout << "*** reset map weights***" << std::endl;
+	clock_t t = std::clock();
+	this->consider_rotation = consider_rotation;
+	fs::path table_save_path(log_dir);
+	if (consider_rotation)
+		table_save_path /= map_name + "_rotation_heuristics_table.txt";
+	else
+		table_save_path /= map_name + "_heuristics_table.txt";
+	
+	for (auto endpoint : this->endpoints)
+	{
+		this->heuristics[endpoint] = compute_heuristics(endpoint);
+	}
+
+	// Under r mode, agent home location is separated from endpoints
+	if(this->r_mode)
+	{
+		for (auto home : this->agent_home_locations)
+		{
+			this->heuristics[home] = compute_heuristics(home);
+		}
+	}
+	// Under w mode, home location is endpoints but need additional
+	// heuristics to workstations
+	else if(this->w_mode)
+	{
+		for (auto workstation : this->workstations)
+		{
+			this->heuristics[workstation] = compute_heuristics(workstation);
+		}
+	}
+	cout << table_save_path << endl;
+	save_heuristics_table(table_save_path.string());
+	
 
 	double runtime = (std::clock() - t) / CLOCKS_PER_SEC;
 	std::cout << "Done! (" << runtime << " s)" << std::endl;

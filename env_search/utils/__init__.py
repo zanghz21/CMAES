@@ -603,6 +603,8 @@ def get_n_valid_edges(map_np, bi_directed, domain):
         block_idxs = [
             kiva_obj_types.index("@"),
         ]
+    else:
+        raise NotImplementedError
     d = [(0, 1), (0, -1), (1, 0), (-1, 0)]
     h, w = map_np.shape
     for x in range(h):

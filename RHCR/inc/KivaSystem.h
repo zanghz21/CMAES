@@ -13,6 +13,12 @@ public:
 	~KivaSystem();
 
 	json simulate(int simulation_time);
+	json summarizeResult();
+	json summarizeCurrResult(int summarize_interval, bool congested_sim);
+	json warmup(int warmup_time);
+	json update_gg_and_step(int update_gg_interval);
+	int total_sim_time;
+	void set_total_sim_time(int total_sim_time, int warmup_time);
 
 
 private:

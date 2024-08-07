@@ -7,8 +7,8 @@ from functools import partial
 
 from dask.distributed import get_worker
 
-# from env_search.warehouse.config import WarehouseConfig
-# from env_search.warehouse.module import WarehouseModule
+from env_search.warehouse.config import WarehouseConfig
+from env_search.warehouse.module import WarehouseModule
 from env_search.competition.config import CompetitionConfig
 from env_search.competition.module import CompetitionModule
 from env_search.traffic_mapf.config import TrafficMAPFConfig
@@ -33,21 +33,21 @@ def get_worker_state(key: str) -> object:
     return getattr(worker, key)
 
 
-# #
-# # Warehouse module
-# #
+#
+# Warehouse module
+#
 
-# WAREHOUSE_MOD_ATTR = "warehouse_module"
-
-
-# def init_warehouse_module(config: WarehouseConfig):
-#     """Initializes this worker's warehouse module."""
-#     set_worker_state(WAREHOUSE_MOD_ATTR, WarehouseModule(config))
+WAREHOUSE_MOD_ATTR = "warehouse_module"
 
 
-# def get_warehouse_module() -> WarehouseModule:
-#     """Retrieves this worker's warehouse module."""
-#     return get_worker_state(WAREHOUSE_MOD_ATTR)
+def init_warehouse_module(config: WarehouseConfig):
+    """Initializes this worker's warehouse module."""
+    set_worker_state(WAREHOUSE_MOD_ATTR, WarehouseModule(config))
+
+
+def get_warehouse_module() -> WarehouseModule:
+    """Retrieves this worker's warehouse module."""
+    return get_worker_state(WAREHOUSE_MOD_ATTR)
 
 
 #

@@ -29,7 +29,8 @@ from queue import Queue
 from typing import Collection
 from env_search import LOG_DIR
 from env_search.utils.logging import setup_logging
-from env_search.iterative_update import WarehouseIterUpdateEnv
+from env_search.iterative_update.envs.env import WarehouseIterUpdateEnv
+from env_search.iterative_update.envs.rhcr_online_env import WarehouseOnlineEnv
 from env_search.warehouse.config import WarehouseConfig
 from env_search.warehouse.update_model import WarehouseBaseUpdateModel
 from env_search.warehouse.warehouse_result import (WarehouseResult,
@@ -139,6 +140,66 @@ class WarehouseModule:
 
         result_json = json.loads(one_sim_result_jsonstr)
         return result_json
+    
+    def evaluate_online(
+        self,
+        map_np: np.ndarray,
+        map_json: str,
+        num_agents: int,
+        model_params: List,
+        eval_logdir: str,
+        n_valid_edges: int,
+        n_valid_vertices: int,
+        seed: int
+        ):
+        env = WarehouseOnlineEnv(
+            map_np,
+            map_json,
+            num_agents,
+            eval_logdir,
+            n_valid_vertices=n_valid_vertices,
+            n_valid_edges=n_valid_edges,
+            config=self.config,
+            seed=seed,
+            # init_weight_file=init_weight_file,
+        )
+        if self.config.iter_update_mdl_kwargs is not None:
+            update_mdl_kwargs = self.config.iter_update_mdl_kwargs
+            
+        update_model: WarehouseBaseUpdateModel = \
+            self.config.iter_update_model_type(
+                map_np,
+                model_params,
+                n_valid_vertices,
+                n_valid_edges,
+                **update_mdl_kwargs,
+            )
+        obs, info = env.reset()
+        curr_result = info["result"]
+        done = False
+        while not done:
+
+            wait_cost_update_vals, edge_weight_update_vals = \
+                update_model.get_update_values_from_obs(obs)
+
+            # Perform update
+            if not self.config.optimize_wait:
+                wait_cost_update_vals = np.mean(wait_cost_update_vals,
+                                                keepdims=True)
+            obs, imp_throughput, done, _, info = env.step(
+                np.concatenate([wait_cost_update_vals,
+                                edge_weight_update_vals]))
+            curr_wait_costs = info["curr_wait_costs"]
+            curr_edge_weights = info["curr_edge_weights"]
+            curr_result = info["result"]
+
+        if self.config.optimize_wait:
+            return curr_result, np.concatenate(
+                [curr_wait_costs, curr_edge_weights])
+        else:
+            return curr_result, np.concatenate([[curr_wait_costs],
+                                                curr_edge_weights])
+            
 
     def evaluate_iterative_update(
         self,
@@ -272,14 +333,14 @@ class WarehouseModule:
             for key in keys:
                 collected_results[key].append(result_json[key])
 
-        # Post process result if necessary
-        tile_usage = np.array(collected_results.get("tile_usage"))
-        edge_pair_usage = np.array(collected_results.get("edge_pair_usage"))
-        # tile_usage = tile_usage.reshape(n_evals, *map_np_repaired.shape)
-        tasks_finished_timestep = [
-            np.array(x)
-            for x in collected_results.get("tasks_finished_timestep")
-        ]
+        # # Post process result if necessary
+        # tile_usage = np.array(collected_results.get("tile_usage"))
+        # edge_pair_usage = np.array(collected_results.get("edge_pair_usage"))
+        # # tile_usage = tile_usage.reshape(n_evals, *map_np_repaired.shape)
+        # tasks_finished_timestep = [
+        #     np.array(x)
+        #     for x in collected_results.get("tasks_finished_timestep")
+        # ]
 
         # Get objective based on type
         objs = None
@@ -290,45 +351,45 @@ class WarehouseModule:
             return ValueError(
                 f"Object type {self.config.obj_type} not supported")
 
-        # Longest common subpath
-        subpaths = collected_results.get("longest_common_path")
-        subpath_len_mean = np.mean([len(path) for path in subpaths])
+        # # Longest common subpath
+        # subpaths = collected_results.get("longest_common_path")
+        # subpath_len_mean = np.mean([len(path) for path in subpaths])
 
         # Create WarehouseResult object using the mean of n_eval simulations
         # For tile_usage, num_wait, and finished_task_len, the mean is not taken
         metadata = WarehouseMetadata(
             objs=objs,
             throughput=collected_results.get("throughput"),
-            tile_usage=tile_usage,
-            tile_usage_mean=np.mean(collected_results.get("tile_usage_mean")),
-            tile_usage_std=np.mean(collected_results.get("tile_usage_std")),
+            # tile_usage=tile_usage,
+            # tile_usage_mean=np.mean(collected_results.get("tile_usage_mean")),
+            # tile_usage_std=np.mean(collected_results.get("tile_usage_std")),
             edge_weights=edge_weights,
             edge_weight_mean=np.mean(edge_weights),
             edge_weight_std=np.std(edge_weights),
-            edge_pair_usage=edge_pair_usage,
-            edge_pair_usage_mean=np.mean(
-                collected_results.get("edge_pair_usage_mean")),
-            edge_pair_usage_std=np.mean(
-                collected_results.get("edge_pair_usage_std")),
+            # edge_pair_usage=edge_pair_usage,
+            # edge_pair_usage_mean=np.mean(
+            #     collected_results.get("edge_pair_usage_mean")),
+            # edge_pair_usage_std=np.mean(
+            #     collected_results.get("edge_pair_usage_std")),
             wait_costs=wait_costs,
-            num_wait=collected_results.get("num_wait"),
-            num_wait_mean=np.mean(collected_results.get("num_wait_mean")),
-            num_wait_std=np.mean(collected_results.get("num_wait_std")),
-            num_turns=collected_results.get("num_turns"),
-            num_turns_mean=np.mean(collected_results.get("num_turns_mean")),
-            num_turns_std=np.mean(collected_results.get("num_turns_std")),
-            finished_task_len=collected_results.get("finished_task_len"),
-            finished_len_mean=np.mean(
-                collected_results.get("finished_len_mean")),
-            finished_len_std=np.mean(collected_results.get("finished_len_std")),
-            tasks_finished_timestep=tasks_finished_timestep,
-            num_rev_action=collected_results.get("num_rev_action"),
-            num_rev_action_mean=np.mean(
-                collected_results.get("num_rev_action_mean")),
-            num_rev_action_std=np.mean(
-                collected_results.get("num_rev_action_std")),
-            subpath=collected_results.get("subpath"),
-            subpath_len_mean=subpath_len_mean,
+            # num_wait=collected_results.get("num_wait"),
+            # num_wait_mean=np.mean(collected_results.get("num_wait_mean")),
+            # num_wait_std=np.mean(collected_results.get("num_wait_std")),
+            # num_turns=collected_results.get("num_turns"),
+            # num_turns_mean=np.mean(collected_results.get("num_turns_mean")),
+            # num_turns_std=np.mean(collected_results.get("num_turns_std")),
+            # finished_task_len=collected_results.get("finished_task_len"),
+            # finished_len_mean=np.mean(
+            #     collected_results.get("finished_len_mean")),
+            # finished_len_std=np.mean(collected_results.get("finished_len_std")),
+            # tasks_finished_timestep=tasks_finished_timestep,
+            # num_rev_action=collected_results.get("num_rev_action"),
+            # num_rev_action_mean=np.mean(
+            #     collected_results.get("num_rev_action_mean")),
+            # num_rev_action_std=np.mean(
+            #     collected_results.get("num_rev_action_std")),
+            # subpath=collected_results.get("subpath"),
+            # subpath_len_mean=subpath_len_mean,
         )
         result = WarehouseResult.from_raw(
             warehouse_metadata=metadata,
