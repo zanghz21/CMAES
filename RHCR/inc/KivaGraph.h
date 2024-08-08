@@ -2,6 +2,8 @@
 #include "BasicGraph.h"
 #include <nlohmann/json.hpp>
 #include <random>
+#include "TaskDistGenerator.h"
+
 using json = nlohmann::json;
 
 class KivaGrid :
@@ -12,6 +14,7 @@ public:
 	vector<int> agent_home_locations;
     vector<int> workstations;
     vector<double> workstation_weights;
+    vector<double> end_points_weights;
 
     // Dummy function to get around inheritance issue
     bool load_map(string fname) { return false; }
@@ -26,6 +29,12 @@ public:
     double get_avg_task_len(
         unordered_map<int, vector<double>> heuristics) const;
     int get_n_valid_edges() const;
+
+    void initialize_end_points_weights(){
+        this->end_points_weights.resize(this->endpoints.size(), 1.0);
+    }
+    void parseMap(std::vector<std::vector<double>>& map_e, std::vector<std::vector<double>>& map_w);
+    void update_task_dist(std::mt19937& gen, std::string task_dist_type);
 
 private:
     bool r_mode; // Robot start location is 'r'

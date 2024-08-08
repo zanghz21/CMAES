@@ -7,7 +7,7 @@
 #include "common.h"
 #include <algorithm>
 
-KivaSystem::KivaSystem(const KivaGrid &G, MAPFSolver &solver) : BasicSystem(G, solver), G(G) {}
+KivaSystem::KivaSystem(KivaGrid &G, MAPFSolver &solver) : BasicSystem(G, solver), G(G) {}
 
 KivaSystem::~KivaSystem()
 {
@@ -75,6 +75,13 @@ void KivaSystem::initialize()
             cout << w << ", ";
         }
         cout << endl;
+
+		// initialize end_points_weights
+		this->G.initialize_end_points_weights();
+		this->end_points_dist = discrete_distribution<int>(
+			this->G.end_points_weights.begin(), 
+			this->G.end_points_weights.end()
+		);
     }
 }
 
@@ -110,6 +117,23 @@ void KivaSystem::initialize_goal_locations()
 	}
 }
 
+void KivaSystem::update_task_dist(){
+	this->G.update_task_dist(this->gen, this->task_dist_type);
+	this->end_points_dist = discrete_distribution<int>(
+		this->G.end_points_weights.begin(), 
+		this->G.end_points_weights.end()
+	);
+	this->workstation_dist = discrete_distribution<int>(
+		this->G.workstation_weights.begin(),
+		this->G.workstation_weights.end()
+	);
+
+}
+
+int KivaSystem::sample_end_points(){
+	int idx = this->end_points_dist(this->gen);
+	return this->G.endpoints[idx];
+}
 
 int KivaSystem::sample_workstation()
 {
@@ -151,7 +175,7 @@ int KivaSystem::gen_next_goal(int agent_id, bool repeat_last_goal)
 			}
 			else
 			{
-				next = G.endpoints[rand() % (int)G.endpoints.size()];
+				next = this->sample_end_points();
 				this->next_goal_type[agent_id] = "w";
 			}
 		}
@@ -676,7 +700,7 @@ json KivaSystem::summarizeResult(){
 	return result;
 }
 
-json KivaSystem::summarizeCurrResult(int summarize_interval, bool congested_sim){
+json KivaSystem::summarizeCurrResult(int summarize_interval){
 	json all_paths = json::array();
 	json full_paths = json::array();
 	json future_paths = json::array();
@@ -721,7 +745,8 @@ json KivaSystem::summarizeCurrResult(int summarize_interval, bool congested_sim)
 	result["future_paths"] = future_paths;
 	result["goal_locs"] = goal_locs;
 	result["num_tasks_finished"] = this->num_of_tasks;
-	result["done"] = this->timestep >= this->total_sim_time || congested_sim;
+	result["done"] = this->timestep >= this->total_sim_time;
+	result["summarize_time"] = summarize_interval;
 	return result;
 }
 
@@ -738,6 +763,7 @@ json KivaSystem::warmup(int warmup_time){
 	std::vector<std::vector<int>> tasks_finished_timestep;
 
     bool congested_sim = false;
+	bool timeout = false;
 
 	int start_timestep = timestep;
 
@@ -773,6 +799,10 @@ json KivaSystem::warmup(int warmup_time){
             n_tasks_finished_per_step, timestep};
         tasks_finished_timestep.emplace_back(curr_task_finished);
 
+		if (this->task_dist_update_interval > 0 && this->timestep % this->task_dist_update_interval == 0){
+			this->update_task_dist();
+		}
+		
 		if (congested())
 		{
 			cout << "***** Timestep " << timestep
@@ -788,11 +818,14 @@ json KivaSystem::warmup(int warmup_time){
         double runtime = (double)(clock() - this->start_time)/ CLOCKS_PER_SEC;
         if (runtime >= this->overall_time_limit)
         {
+			timeout = true;
             cout << "***** Timestep " << timestep << ": Overtime *****" << endl;
             break;
         }
 	}
-	json result = this->summarizeCurrResult(timestep - start_timestep, congested_sim);
+	json result = this->summarizeCurrResult(timestep - start_timestep);
+	result["congested"] = congested_sim;
+	result["timeout"] = timeout;
 	return result;
 }
 
@@ -803,6 +836,7 @@ json KivaSystem::update_gg_and_step(int update_gg_interval){
 	std::vector<std::vector<int>> tasks_finished_timestep;
 
     bool congested_sim = false;
+	bool timeout = false;
 
 	int start_timestep = timestep;
 
@@ -837,6 +871,10 @@ json KivaSystem::update_gg_and_step(int update_gg_interval){
             n_tasks_finished_per_step, timestep};
         tasks_finished_timestep.emplace_back(curr_task_finished);
 
+		if (this->task_dist_update_interval > 0 && this->timestep % this->task_dist_update_interval == 0){
+			this->update_task_dist();
+		}
+
 		if (congested())
 		{
 			cout << "***** Timestep " << timestep
@@ -852,11 +890,14 @@ json KivaSystem::update_gg_and_step(int update_gg_interval){
         double runtime = (double)(clock() - this->start_time)/ CLOCKS_PER_SEC;
         if (runtime >= this->overall_time_limit)
         {
+			timeout = true;
             cout << "***** Timestep " << timestep << ": Overtime *****" << endl;
             break;
         }
 	}
-	json result = this->summarizeCurrResult(timestep - start_timestep, congested_sim);
+	json result = this->summarizeCurrResult(timestep - start_timestep);
+	result["congested"] = congested_sim;
+	result["timeout"] = timeout;
 	return result;
 }
 
@@ -900,6 +941,10 @@ json KivaSystem::simulate(int simulation_time)
         std::vector<int> curr_task_finished {
             n_tasks_finished_per_step, timestep};
         tasks_finished_timestep.emplace_back(curr_task_finished);
+
+		if (this->task_dist_update_interval > 0 && this->timestep % this->task_dist_update_interval == 0){
+			this->update_task_dist();
+		}
 
 		if (congested())
 		{

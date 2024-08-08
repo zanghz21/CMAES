@@ -80,6 +80,10 @@ public:
     std::vector<Path> paths;
     std::vector<std::list<std::pair<int, int> > > finished_tasks; // location + finish time
 
+    int task_dist_update_interval = -1;
+	std::string task_dist_type="default";
+
+
     bool congested() const;
 	bool check_collisions(const vector<Path>& input_paths) const;
 

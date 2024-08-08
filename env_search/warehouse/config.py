@@ -100,6 +100,8 @@ class WarehouseConfig:
     optimize_wait: bool = True
     warmup_time: int = 20
     update_gg_interval: int = 20
+    task_dist_update_interval: int = -1
+    task_dist_type: str = "default"
 
     # Iterative update. All params are optional b.c. iterative update is turned
     # off by default

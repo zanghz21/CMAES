@@ -9,7 +9,11 @@ PYBIND11_MODULE(WarehouseSimulator, m){
 
 std::string WarehouseSimulator::warmup(){
     this->G.preprocessing(this->system->consider_rotation, this->output);
+    // std::cout << this->G.heuristics.size() << std::endl;
+    // std::cout << this->system->G.heuristics.size() << std::endl;
+    // exit(1);
     json result = this->system->warmup(this->warmup_time);
+    // std::cout << "solver name: " <<this->system->solver.get_name()<<std::endl;
     return result.dump(4);
 }
 
@@ -65,6 +69,7 @@ MAPFSolver* set_solver(const BasicGraph& G, const py::kwargs& kwargs)
 	}
 
 	solver_name = kwargs["solver"].cast<string>();
+    std::cout << "solver_name = "<<solver_name <<std::endl;
 	if (solver_name == "ECBS")
 	{
 		ECBS* ecbs = new ECBS(G, *path_planner);
@@ -196,6 +201,13 @@ WarehouseSimulator::WarehouseSimulator(py::kwargs kwargs){
     this->warmup_time = kwargs["warmup_time"].cast<int>();
     this->update_gg_interval = kwargs["update_gg_interval"].cast<int>();
     this->system->set_total_sim_time(kwargs["simulation_time"].cast<int>(), this->warmup_time);
+    
+    if (kwargs.contains("task_dist_update_interval")){
+        this->system->task_dist_update_interval = kwargs["task_dist_update_interval"].cast<int>();
+    }
+    if (kwargs.contains("task_dist_type")){
+        this->system->task_dist_type = kwargs["task_dist_type"].cast<std::string>();
+    }
     // G.preprocessing(system.consider_rotation,
     //                 kwargs["output"].cast<std::string>());
     // result = system.simulate(kwargs["simulation_time"].cast<int>());

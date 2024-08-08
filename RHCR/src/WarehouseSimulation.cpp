@@ -38,6 +38,13 @@ void set_parameters(BasicSystem& system, const py::kwargs& kwargs)
 		system.seed = kwargs["seed"].cast<int>();
 	else
 		system.seed = (int)time(0);
+
+	if (kwargs.contains("task_dist_update_interval")){
+        system.task_dist_update_interval = kwargs["task_dist_update_interval"].cast<int>();
+    }
+    if (kwargs.contains("task_dist_type")){
+        system.task_dist_type = kwargs["task_dist_type"].cast<std::string>();
+    }
 	srand(system.seed);
 }
 

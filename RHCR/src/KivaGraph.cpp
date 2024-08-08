@@ -82,6 +82,66 @@ void KivaGrid::infer_sim_mode_from_map(json G_json)
     check_mode();
 }
 
+void KivaGrid::parseMap(std::vector<std::vector<double>>& map_e, std::vector<std::vector<double>>& map_w){
+    map_e.resize(this->rows, vector<double>(this->cols, 0));
+    map_w.resize(this->rows, vector<double>(this->cols, 0));
+    for (auto e_id: this->endpoints){
+        int r = e_id / this->cols;
+        int c = e_id % this->cols;
+        map_e[r][c] = 1;
+    }
+    for (auto w_id: this->workstations){
+        int r = w_id / this->cols;
+        int c = w_id % this->cols;
+        map_w[r][c] = 1;
+    }
+}
+void KivaGrid::update_task_dist(std::mt19937& gen, std::string task_dist_type){
+	if (task_dist_type != "Gaussian"){
+		std::cout << "task dist type [" <<task_dist_type <<"] not support yet"<<std::endl;
+		exit(-1);
+	}
+
+	std::vector<std::vector<double>> map_e, map_w;
+
+    this->parseMap(map_e, map_w);
+    
+    int num_w = 0;
+    for (const auto& row : map_w) {
+        num_w += count(row.begin(), row.end(), 1.0);
+    }
+
+    this->workstation_weights.resize(num_w, 1.0);
+    
+    int h = this->rows;
+    int w = this->cols;
+
+    std::uniform_int_distribution<> dis_h(0, h - 1);
+    std::uniform_int_distribution<> dis_w(0, w - 1);
+    
+    int center_h = dis_h(gen);
+    int center_w = dis_w(gen);
+    std::cout << "gaussian center = "<< center_h <<", " << center_w<<std::endl;
+    
+    std::vector<std::vector<double>> dist_full = getGaussian(h, w, center_h, center_w);
+    std::vector<std::vector<double>> dist_e(h, std::vector<double>(w, 0));
+    double max_val = 0;
+
+    for (int r = 0; r < h; ++r) {
+        for (int c = 0; c < w; ++c) {
+            dist_e[r][c] = dist_full[r][c] * map_e[r][c];
+            if (dist_e[r][c] > max_val) max_val = dist_e[r][c];
+        }
+    }
+
+    for (int r = 0; r < h; ++r) {
+        for (int c = 0; c < w; ++c) {
+            dist_e[r][c] /= max_val; // normalize
+        }
+    }
+
+    this->end_points_weights = generateVecEDist(map_e, dist_e);
+}
 
 
 bool KivaGrid::load_unweighted_map_from_json(
@@ -287,6 +347,10 @@ void KivaGrid::update_map_weights(bool optimize_wait, std::vector<double> new_we
             }
         }
     }
+	if (j!=new_weights.size()){
+		std::cout << "weights size error! hope: ["<<j<<"], actual get ["<<new_weights.size()<<"]"<<std::endl;
+		exit(-1);
+	}
 }
 
 bool KivaGrid::load_weighted_map_from_json(

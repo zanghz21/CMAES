@@ -245,7 +245,9 @@ class WarehouseOnlineEnv:
             "left_w_weight": self.config.left_w_weight,
             "right_w_weight": self.config.right_w_weight,
             "warmup_time": self.config.warmup_time, 
-            "update_gg_interval": self.config.update_gg_interval
+            "update_gg_interval": self.config.update_gg_interval, 
+            "task_dist_update_interval": self.config.task_dist_update_interval, 
+            "task_dist_type": self.config.task_dist_type
         }
         return kwargs
 
@@ -307,9 +309,12 @@ class WarehouseOnlineEnv:
         return_result = {}
         return_result["throughput"] = self.num_tasks_finished / self.config.simulation_time
 
-        terminated = result["done"]
-        truncated = terminated
+        done = result["done"]
+        timeout = result["timeout"]
+        congested = result["congested"]
         
+        terminated = done | timeout | congested
+        truncated = terminated
         
         # Info includes the results
         info = {
@@ -363,8 +368,9 @@ if __name__ == "__main__":
     cfg.has_traffic_obs = True
     cfg.has_gg_obs = False
     cfg.has_task_obs = True
-    print(cfg.solver, cfg.single_agent_solver)
-    raise NotImplementedError
+    cfg.task_dist_update_interval = 200
+    cfg.task_dist_type = "Gaussian"
+    print("cutoff:", cfg.overallCutoffTime)
     
     domain = "kiva"
     base_map_str, _ = read_in_kiva_map(map_path)
@@ -377,13 +383,34 @@ if __name__ == "__main__":
                              n_valid_vertices=n_valid_vertices, n_valid_edges=n_valid_edges, 
                              config=cfg, seed=0)
         
-    np.set_printoptions(threshold=np.inf)
+    def vis_arr(arr_, mask=None, name="test"):
+        arr = arr_.copy()
+        save_dir = "env_search/warehouse/plots"
+        os.makedirs(save_dir, exist_ok=True)
+        import matplotlib.pyplot as plt
+        if mask is not None:
+            arr = np.ma.masked_where(mask, arr)
+        cmap = plt.cm.Reds
+        # cmap.set_bad(color='black')
+        plt.imshow(arr, cmap=cmap, interpolation="none")
+        plt.colorbar()
+        plt.savefig(os.path.join(save_dir, f"{name}.png"))
+        plt.close()
+    
+    cnt = 0
     obs, info = env.reset()
+    for i in range(4, 5):
+        vis_arr(obs[i], name=f"step{cnt}_traffic{i}")
+    vis_arr(obs[-1], name=f"step{cnt}_task")
     
     done = False
     while not done:
-        action = np.random.random(n_valid_vertices+n_valid_edges)
+        cnt+=1
+        action = np.ones(n_valid_vertices+n_valid_edges)
         obs, reward, terminated, truncated, info = env.step(action)
+        for i in range(4, 5):
+            vis_arr(obs[i], name=f"step{cnt}_traffic{i}")
+        vis_arr(obs[-1], name=f"step{cnt}_task")
         done = terminated or truncated
     
     print(info["result"]["throughput"])

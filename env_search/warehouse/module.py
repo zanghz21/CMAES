@@ -14,7 +14,7 @@ import fire
 import logging
 import pathlib
 import warnings
-# from simulators.rhcr import warehouse_sim  # type: ignore # ignore pylance warning
+from simulators.rhcr import warehouse_sim  # type: ignore # ignore pylance warning
 import numpy as np
 import shutil
 import multiprocessing
@@ -99,6 +99,7 @@ class WarehouseModule:
             "task": self.config.task,
             "agentNum": agentNum,
             "cutoffTime": self.config.cutoffTime,
+            "overallCutoffTime": self.config.overallCutoffTime, 
             "seed": int(sim_seed),
             "screen": self.config.screen,
             "solver": self.config.solver,
@@ -126,6 +127,8 @@ class WarehouseModule:
             "stop_at_traffic_jam": self.config.stop_at_traffic_jam,
             "left_w_weight": self.config.left_w_weight,
             "right_w_weight": self.config.right_w_weight,
+            "task_dist_update_interval": self.config.task_dist_update_interval, 
+            "task_dist_type": self.config.task_dist_type
         }
 
         # For some of the parameters, we do not want to pass them in here
