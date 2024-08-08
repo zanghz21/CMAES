@@ -46,6 +46,13 @@ void set_parameters(BasicSystem& system, const py::kwargs& kwargs)
 	else
 		system.seed = (int)time(0);
 	srand(system.seed);
+
+	if (kwargs.contains("dist_sigma")){
+		dist_params.sigma = kwargs["dist_sigma"].cast<double>();
+	}
+	if (kwargs.contains("dist_K")){
+		dist_params.K = kwargs["dist_K"].cast<int>();
+	}
 }
 
 

@@ -41,4 +41,6 @@ class TrafficMAPFConfig:
     # varied dist
     task_dist_change_interval: int = -1
     task_random_type: str = "Gaussian"
+    dist_sigma: float = 0.5
+    dist_K: int = 3
         

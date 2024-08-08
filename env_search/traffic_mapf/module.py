@@ -53,7 +53,9 @@ class TrafficMAPFModule:
             "default_obst_flow": self.config.default_obst_flow, 
             "learn_obst_flow": self.config.learn_obst_flow, 
             "task_dist_change_interval": self.config.task_dist_change_interval, 
-            "task_random_type": self.config.task_random_type
+            "task_random_type": self.config.task_random_type, 
+            "dist_sigma": self.config.dist_sigma, 
+            "dist_K": self.config.dist_K
         }
         if not self.config.gen_tasks:
             assert self.config.all_json_path is not None
