@@ -128,7 +128,9 @@ class WarehouseModule:
             "left_w_weight": self.config.left_w_weight,
             "right_w_weight": self.config.right_w_weight,
             "task_dist_update_interval": self.config.task_dist_update_interval, 
-            "task_dist_type": self.config.task_dist_type
+            "task_dist_type": self.config.task_dist_type, 
+            "dist_sigma": self.config.dist_sigma, 
+            "dist_K": self.config.dist_K
         }
 
         # For some of the parameters, we do not want to pass them in here
