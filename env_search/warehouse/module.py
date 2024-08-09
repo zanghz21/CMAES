@@ -28,7 +28,7 @@ from typing import Collection, Optional
 from queue import Queue
 from typing import Collection
 from env_search import LOG_DIR
-from env_search.utils.logging import setup_logging
+from env_search.utils.logging import setup_logging, get_hash_file_name
 from env_search.iterative_update.envs.env import WarehouseIterUpdateEnv
 from env_search.iterative_update.envs.rhcr_online_env import WarehouseOnlineEnv
 from env_search.warehouse.config import WarehouseConfig
@@ -155,6 +155,15 @@ class WarehouseModule:
         n_valid_vertices: int,
         seed: int
         ):
+        # os.makedirs(eval_logdir, exist_ok=True)
+        # hash_name = get_hash_file_name()
+        # save_file = os.path.join(eval_logdir, f"seed{seed}_{hash_name}")
+        # with open(save_file, "w") as f:
+        #     json.dump({
+        #         "model_params": model_params.tolist(), 
+        #         "seed": int(seed)
+        #     }, f, indent=4)
+            
         env = WarehouseOnlineEnv(
             map_np,
             map_json,
@@ -189,12 +198,21 @@ class WarehouseModule:
             if not self.config.optimize_wait:
                 wait_cost_update_vals = np.mean(wait_cost_update_vals,
                                                 keepdims=True)
-            obs, imp_throughput, done, _, info = env.step(
-                np.concatenate([wait_cost_update_vals,
-                                edge_weight_update_vals]))
+            
+            action = np.concatenate([wait_cost_update_vals,
+                                edge_weight_update_vals])
+            # print(action[:5])
+            # with open(save_file, "a") as f:
+            #     f.writelines("\n")
+            #     json.dump({"action": action.tolist()}, f)
+            obs, imp_throughput, done, _, info = env.step(action)
             curr_wait_costs = info["curr_wait_costs"]
             curr_edge_weights = info["curr_edge_weights"]
             curr_result = info["result"]
+            
+        # with open(save_file, "a") as f:
+        #     f.writelines("\n")
+        #     f.writelines([f"success! tp: {curr_result['throughput']}, env.left_timestep={env.left_timesteps}"])
 
         if self.config.optimize_wait:
             return curr_result, np.concatenate(

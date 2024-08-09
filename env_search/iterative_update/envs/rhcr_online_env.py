@@ -110,14 +110,14 @@ class WarehouseOnlineEnv:
         return traffic_obs
     
     def _gen_future_obs(self, result):
-        h, w = self.comp_map.graph.shape
+        h, w = self.map_np.shape
         edge_usage = np.zeros((4, h, w))
         wait_usage = np.zeros((1, h, w))
         
         for agent_i in range(self.num_agents):
-            for t in range(len(result["future_paths"][agent_i])):
-                prev_loc = self.pos_hists[agent_i][t]
-                curr_loc = self.pos_hists[agent_i][t+1]
+            for t in range(len(result["future_paths"][agent_i])-1):
+                prev_loc = result["future_paths"][agent_i][t]
+                curr_loc = result["future_paths"][agent_i][t+1]
                 
                 prev_r, prev_c = prev_loc // w, prev_loc % w
                 if prev_loc == curr_loc:
@@ -140,7 +140,8 @@ class WarehouseOnlineEnv:
         if edge_usage.sum() != 0:
             edge_usage = edge_usage/edge_usage.sum() * 100
         # print("new, wait_usage:", wait_usage.max(), "edge_usage:", edge_usage.max())
-        return wait_usage, edge_usage
+        future_obs = np.concatenate([wait_usage, edge_usage], axis=0)
+        return future_obs
     
     
     def _gen_gg_obs(self):
@@ -379,9 +380,6 @@ if __name__ == "__main__":
     n_valid_edges = get_n_valid_edges(base_map_np, bi_directed=True, domain=domain)
     with open(map_path, "r") as f:
         map_json = json.load(f)
-    env = WarehouseOnlineEnv(base_map_np, map_json, num_agents=100, eval_logdir='test', 
-                             n_valid_vertices=n_valid_vertices, n_valid_edges=n_valid_edges, 
-                             config=cfg, seed=0)
         
     def vis_arr(arr_, mask=None, name="test"):
         arr = arr_.copy()
@@ -397,21 +395,26 @@ if __name__ == "__main__":
         plt.savefig(os.path.join(save_dir, f"{name}.png"))
         plt.close()
     
-    cnt = 0
-    obs, info = env.reset()
-    for i in range(4, 5):
-        vis_arr(obs[i], name=f"step{cnt}_traffic{i}")
-    vis_arr(obs[-1], name=f"step{cnt}_task")
-    
-    done = False
-    while not done:
-        cnt+=1
-        action = np.ones(n_valid_vertices+n_valid_edges)
-        obs, reward, terminated, truncated, info = env.step(action)
-        for i in range(4, 5):
-            vis_arr(obs[i], name=f"step{cnt}_traffic{i}")
-        vis_arr(obs[-1], name=f"step{cnt}_task")
-        done = terminated or truncated
-    
-    print(info["result"]["throughput"])
-            
+    for i in range(5):
+        
+        env = WarehouseOnlineEnv(base_map_np, map_json, num_agents=100, eval_logdir='test', 
+                             n_valid_vertices=n_valid_vertices, n_valid_edges=n_valid_edges, 
+                             config=cfg, seed=0)
+        cnt = 0
+        obs, info = env.reset()
+        # for i in range(4, 5):
+        #     vis_arr(obs[i], name=f"step{cnt}_traffic{i}")
+        # vis_arr(obs[-1], name=f"step{cnt}_task")
+        
+        done = False
+        while not done:
+            cnt+=1
+            action = np.ones(1+n_valid_edges)
+            obs, reward, terminated, truncated, info = env.step(action)
+            # for i in range(4, 5):
+            #     vis_arr(obs[i], name=f"step{cnt}_traffic{i}")
+            # vis_arr(obs[-1], name=f"step{cnt}_task")
+            done = terminated or truncated
+        
+        print("tp =", info["result"]["throughput"])
+                
