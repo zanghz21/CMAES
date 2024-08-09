@@ -102,6 +102,8 @@ class WarehouseConfig:
     update_gg_interval: int = 20
     task_dist_update_interval: int = -1
     task_dist_type: str = "default"
+    dist_sigma: float = 1.0
+    dist_K: int = 3
 
     # Iterative update. All params are optional b.c. iterative update is turned
     # off by default
