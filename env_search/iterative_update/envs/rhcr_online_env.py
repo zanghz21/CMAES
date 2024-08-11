@@ -247,7 +247,9 @@ class WarehouseOnlineEnv:
             "warmup_time": self.config.warmup_time, 
             "update_gg_interval": self.config.update_gg_interval, 
             "task_dist_update_interval": self.config.task_dist_update_interval, 
-            "task_dist_type": self.config.task_dist_type
+            "task_dist_type": self.config.task_dist_type, 
+            "dist_sigma": self.config.dist_sigma, 
+            "dist_K": self.config.dist_K
         }
         return kwargs
 
