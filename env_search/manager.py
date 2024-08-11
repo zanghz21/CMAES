@@ -749,6 +749,7 @@ class Manager:  # pylint: disable = too-many-instance-attributes
 
         self.metrics.add("Mean Evaluation", np.nanmean(objs), logger)
         self.stats["curr_mean"] = np.nanmean(objs)
+        self.stats["curr_std"] = np.nanstd(objs)
         self.overall_min_obj = min(self.overall_min_obj, np.nanmin(objs))
 
     def evaluate_initial_emulation_solutions(self):

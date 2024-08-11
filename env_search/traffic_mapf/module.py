@@ -11,6 +11,7 @@ from env_search.traffic_mapf.result import TrafficMAPFResult
 from env_search.utils import MIN_SCORE, get_project_dir
 from env_search.utils.logging import get_current_time_str, get_hash_file_name
 from env_search.iterative_update.envs.trafficflow_env import TrafficFlowOfflineEnv
+from env_search.iterative_update.envs.trafficflow_online_env import TrafficFlowOnlineEnv
 from env_search.traffic_mapf.update_model.update_model import CNNUpdateModel
 
 def generate_hash_file_path():
@@ -150,6 +151,27 @@ print("{delimiter}")
     def evaluate_offline(self, model_params, seed):
         env = TrafficFlowOfflineEnv(
             cfg=self.config, seed=seed
+        )
+        
+        update_mdl_kwargs = {}
+        if self.config.iter_update_mdl_kwargs is not None:
+            update_mdl_kwargs = self.config.iter_update_mdl_kwargs
+            
+        update_model = CNNUpdateModel(
+            model_params, 
+            **update_mdl_kwargs,
+        )
+        obs, info = env.reset()
+        done = False
+        while not done:
+            action = update_model.get_update_values_from_obs(obs)
+            obs, imp_throughput, done, _, info = env.step(action)
+            curr_result = info["result"]
+        return curr_result
+    
+    def evaluate_period_online(self, model_params, seed):
+        env = TrafficFlowOnlineEnv(
+            config=self.config, seed=seed
         )
         
         update_mdl_kwargs = {}
