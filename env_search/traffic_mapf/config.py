@@ -36,6 +36,15 @@ class TrafficMAPFConfig:
     # offline sim cfg
     iter_update_n_iters: int = 1
     iter_update_mdl_kwargs: Dict = None
+    
+    # online(periodical) sim cfg
+    update_gg_interval: int = 20
+    warmup_time: int = 20
+    past_traffic_interval: int = 20
+    reset_weights_path: str = None
+    has_traffic_obs: bool = True
+    has_gg_obs: bool = False
+    has_task_obs: bool = True
         
     
     # varied dist

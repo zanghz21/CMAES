@@ -20,6 +20,15 @@ def run_traffic_mapf_offline(
     )
     return result
 
+def run_traffic_mapf_period_online(
+    nn_weights: np.ndarray, seed
+):
+    traffic_mapf_module = get_traffic_mapf_module()
+    result = traffic_mapf_module.evaluate_period_online(
+        nn_weights, seed
+    )
+    return result
+
 def process_traffic_mapf_results(curr_result_jsons):
     traffic_mapf_module = get_traffic_mapf_module()
     
