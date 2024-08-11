@@ -7,7 +7,7 @@ import logging
 from logdir import LogDir
 
 from env_search.utils.worker_state import init_traffic_mapf_module
-from env_search.traffic_mapf.run import run_traffic_mapf, run_traffic_mapf_offline, process_traffic_mapf_results
+from env_search.traffic_mapf.run import run_traffic_mapf, run_traffic_mapf_offline, run_traffic_mapf_period_online, process_traffic_mapf_results
 from env_search.traffic_mapf.module import TrafficMAPFModule
 from env_search.traffic_mapf.config import TrafficMAPFConfig
 
@@ -22,11 +22,13 @@ class TrafficMAPFManager:
                  rng: np.random.Generator=None, 
                  update_model_n_params: int = -1, 
                  offline: bool = False, 
+                 period_online: bool = False, 
                  n_evals: int = gin.REQUIRED, 
                  bounds=None) -> None:
         
         self.iterative_update = True
         self.offline = offline
+        self.period_online = period_online
         self.n_evals = n_evals
         
         self.update_model_n_params = update_model_n_params
@@ -65,7 +67,16 @@ class TrafficMAPFManager:
         iter_update_sols = [sol for sol in unrepaired_sols for _ in range(self.n_evals)]
         all_seeds = evaluation_seeds
         
-        run_func = run_traffic_mapf if not self.offline else run_traffic_mapf_offline
+        assert not (self.offline and self.period_online)
+        if not self.offline and not self.period_online:
+            run_func = run_traffic_mapf
+        elif self.offline:
+            run_func = run_traffic_mapf_offline
+        elif self.period_online:
+            run_func = run_traffic_mapf_period_online
+        else:
+            raise NotImplementedError
+        
         sim_start_time = time.time()
         sim_futures = [
             self.client.submit(
