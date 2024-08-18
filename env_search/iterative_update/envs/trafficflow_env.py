@@ -100,7 +100,10 @@ class TrafficFlowOfflineEnv(gym.Env):
         kwargs["map_weights"] = json.dumps(map_weights.flatten().tolist())
         # print(kwargs)
         delimiter = "[=====delimiter======]"
-        simulator_path = "simulators.trafficMAPF_off"
+        if not self.config.use_lns:
+            simulator_path = "simulators.trafficMAPF_off"
+        else:
+            simulator_path = "simulators.trafficMAPF_off_lns"
         
         if save_in_disk:
             file_path = generate_hash_file_path()
@@ -258,7 +261,7 @@ print("{delimiter}")
 
 if __name__ == "__main__":
     import gin
-    gin.parse_config_file("config/traffic_mapf/ggo_33x36.gin", skip_unknown=True)
+    gin.parse_config_file("config/traffic_mapf/periodical_on/empty.gin", skip_unknown=True)
     cfg = TrafficMAPFConfig()
     env = TrafficFlowOfflineEnv(
         cfg, seed=0
@@ -267,7 +270,7 @@ if __name__ == "__main__":
     done = False
     env.reset()
     while not done:
-        action = np.random.random((4, 33, 36))
+        action = np.random.random((4, 32, 32))
         obs, rew, terminated, truncated, info = env.step(action)
         done = terminated or truncated
         print(info["result"]["throughput"])

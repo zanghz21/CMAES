@@ -27,7 +27,7 @@ from env_search.utils import (
 )
 from env_search.utils import set_spines_visible
 
-FIG_HEIGHT = 10
+FIG_HEIGHT = 3
 
 
 def convert_avi_to_gif(
@@ -99,7 +99,7 @@ def visualize_env(env_np, cmap, norm, ax, fig, save, filenames, store_dir,
         cbar=False,
         rasterized=True,
         annot_kws={"size": 30},
-        linewidths=1,
+        linewidths=0.,
         linecolor="black",
         xticklabels=False,
         yticklabels=False,
