@@ -32,9 +32,18 @@ EXP_AGENTS = {
     "random": [200, 300, 400, 500, 600, 700, 800], 
     # "room": [100, 500, 1000, 1500, 2000, 2500, 3000], 
     "room": [100, 200, 300, 400, 500, 600], 
+    # "warehouse_small_narrow": [600],
     "warehouse_small_narrow": [200, 300, 400, 500, 600, 700, 800, 900, 1000], 
     "empty": [200, 300, 400, 500, 600, 700, 800, 900]
 }
+
+EXP_AGENTS_RUNTIME = {
+    "sortation_small": [800],
+    "random": [400], 
+    "warehouse_small_narrow": [600], 
+    "empty": [400]
+}
+
 def parse_config(log_dir):
     cfg_file = os.path.join(log_dir, "config.gin")
     gin.parse_config_file(cfg_file, skip_unknown=True)
@@ -102,10 +111,10 @@ def single_offline_exp(log_dir, optimal_weights, n_e, n_v, seed, base_save_dir, 
     save_data = {"throughput": tp, "sim_time": sim_time}
     with open(save_path, 'w') as f:
         json.dump(save_data, f)
+    return save_data
     
     
 def single_online_exp(log_dir, model_params, n_e, n_v, seed, base_save_dir, num_agents, timestr):
-    os.environ["OMP_NUM_THREADS"] = "1"
     cfg, _ = parse_config(log_dir)
     
     save_dir = os.path.join(base_save_dir, f"ag{num_agents}", f"{seed}")
@@ -126,9 +135,9 @@ def single_online_exp(log_dir, model_params, n_e, n_v, seed, base_save_dir, num_
     save_data = {"throughput": tp, "sim_time": run_time}
     with open(save_path, 'w') as f:
         json.dump(save_data, f)
+    return save_data
 
-
-def main(log_dir, n_workers, n_evals, all_results_dir):
+def main(log_dir, n_workers, n_evals, is_runtime, all_results_dir):
     base_save_dir = os.path.join(all_results_dir, "PIBT")
     timestr = get_current_time_str()
     
@@ -156,7 +165,11 @@ def main(log_dir, n_workers, n_evals, all_results_dir):
         print(f"map path [{cfg.map_path}] cannot be recognized")
         raise NotImplementedError
     
-    agent_ls = EXP_AGENTS[map_type]    
+    if not is_runtime:  
+        agent_ls = EXP_AGENTS[map_type]    
+    else:
+        agent_ls = EXP_AGENTS_RUNTIME[map_type]
+    
     pool = multiprocessing.Pool(n_workers)
     
     exp_agent_ls = []
@@ -171,7 +184,7 @@ def main(log_dir, n_workers, n_evals, all_results_dir):
         algo = "online"
         model_params = get_update_model(log_dir)
         save_dir = os.path.join(base_save_dir, algo, map_type, log_name)
-        pool.starmap(
+        all_data = pool.starmap(
             single_online_exp, 
             zip(
                 repeat(log_dir, n_simulations), 
@@ -190,7 +203,7 @@ def main(log_dir, n_workers, n_evals, all_results_dir):
         
     
         save_dir = os.path.join(base_save_dir, algo, map_type, log_name)
-        pool.starmap(
+        all_data = pool.starmap(
             single_offline_exp, 
             zip(
                 repeat(log_dir, n_simulations),
@@ -204,13 +217,25 @@ def main(log_dir, n_workers, n_evals, all_results_dir):
             )
         )
     
+    if is_runtime:
+        collected_data = {"sim_time": [], "throughput": []}
+        for data in all_data:
+            for key, v in data.items():
+                if key not in collected_data.keys():
+                    print(key)
+                    raise NotImplementedError
+                collected_data[key].append(v)
+                
+        for key, v in collected_data.items():
+            print(f"key={key}, avg={np.mean(v)}, std={np.std(v, ddof=1)}")
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument('--logdir', type=str, required=True)
     p.add_argument('--n_workers', type=int, required=True)
     p.add_argument('--n_evals', type=int, required=True)
+    p.add_argument('--is_runtime', action="store_true", default=False)
     p.add_argument('--all_results_dir', type=str, default="../results")
     cfg = p.parse_args()
     
-    main(log_dir=cfg.logdir, n_workers=cfg.n_workers, n_evals=cfg.n_evals, all_results_dir=cfg.all_results_dir)
+    main(log_dir=cfg.logdir, n_workers=cfg.n_workers, n_evals=cfg.n_evals, is_runtime=cfg.is_runtime, all_results_dir=cfg.all_results_dir)
