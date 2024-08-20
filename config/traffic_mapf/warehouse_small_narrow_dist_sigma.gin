@@ -2,7 +2,7 @@ include "config/traffic_mapf/base.gin"
 
 experiment.name = "trafficMAPF wnarrow dist on"
 
-TrafficMAPFManager.n_evals = 5
+TrafficMAPFManager.n_evals = 2
 
 TrafficMAPFConfig.simu_time = 1000
 TrafficMAPFConfig.has_map = False

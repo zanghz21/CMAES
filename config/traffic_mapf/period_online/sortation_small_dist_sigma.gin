@@ -2,8 +2,8 @@ include "config/traffic_mapf/base.gin"
 
 experiment.name = "trafficMAPF sort periodical on"
 
+TrafficMAPFManager.n_evals = 5
 TrafficMAPFConfig.simu_time = 1000
-TrafficMAPFConfig.n_sim = 2
 
 TrafficMAPFConfig.has_map = False
 TrafficMAPFConfig.has_path = False

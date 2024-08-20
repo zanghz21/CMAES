@@ -4,11 +4,7 @@ experiment.name = "trafficMAPF sort periodical on"
 
 TrafficMAPFConfig.simu_time = 1000
 
-TrafficMAPFConfig.has_map = False
-TrafficMAPFConfig.has_path = False
-TrafficMAPFConfig.has_previous = False
-
-TrafficMAPFConfig.num_agents = 800
+TrafficMAPFConfig.num_agents = 400
 
 TrafficMAPFManager.update_model_n_params = 3084
 TrafficMAPFManager.offline = False
@@ -17,8 +13,11 @@ TrafficMAPFManager.period_online = True
 Manager.max_evals = 10000
 
 TrafficMAPFConfig.gen_tasks = True
-TrafficMAPFConfig.use_cached_nn = False
 TrafficMAPFConfig.use_lns = False
+
+TrafficMAPFConfig.task_dist_change_interval = 200
+TrafficMAPFConfig.task_random_type = "GaussianMixed"
+TrafficMAPFConfig.task_assignment_strategy = "online_generate"
 
 TrafficMAPFConfig.iter_update_mdl_kwargs = {
     "nc": 6,
@@ -26,4 +25,4 @@ TrafficMAPFConfig.iter_update_mdl_kwargs = {
     "n_hid_chan": 32,
 }
 
-TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/sortation_small_kiva.map"
+TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/empty-32-32.map"

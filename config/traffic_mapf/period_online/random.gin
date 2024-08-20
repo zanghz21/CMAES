@@ -3,7 +3,6 @@ include "config/traffic_mapf/base.gin"
 experiment.name = "trafficMAPF sort periodical on"
 
 TrafficMAPFConfig.simu_time = 1000
-TrafficMAPFConfig.n_sim = 5
 
 TrafficMAPFConfig.num_agents = 400
 

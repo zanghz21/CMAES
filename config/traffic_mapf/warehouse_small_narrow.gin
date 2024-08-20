@@ -9,7 +9,7 @@ TrafficMAPFConfig.has_map = False
 TrafficMAPFConfig.has_path = False
 TrafficMAPFConfig.has_previous = False
 
-TrafficMAPFManager.n_evals = 5
+TrafficMAPFManager.n_evals = 2
 
 # TrafficMAPFConfig.win_r = 3
 TrafficMAPFConfig.win_r = 2
@@ -22,9 +22,9 @@ TrafficMAPFManager.update_model_n_params = 560
 
 TrafficMAPFConfig.num_agents = 600
 
-Manager.max_evals = 100000
+Manager.max_evals = 20000
 Manager.archive_save_freq = 100
 
 TrafficMAPFConfig.gen_tasks = True
 TrafficMAPFConfig.all_json_path = ""
-TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/warehouse_small_narrow.map"
+TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/warehouse_small_narrow_kiva.map"
