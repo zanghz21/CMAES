@@ -8,9 +8,17 @@ import argparse
 def parse_eval_results(base_dir, time_str, n_evals):
     for map_type in EXP_AGENTS:
         if map_type in base_dir:
+            if "warehouse" in map_type:
+                if "large" in base_dir:
+                    map_type = "warehouse_large"
+                elif "narrow" in base_dir:
+                    map_type = "warehouse_small_narrow"
+                else:
+                    map_type = "warehouse_small"
             break
 
     agent_ls = EXP_AGENTS[map_type]
+    print(agent_ls)
     
     base_dir = base_dir
     
@@ -22,8 +30,8 @@ def parse_eval_results(base_dir, time_str, n_evals):
         csv_file = os.path.join(csv_dir, f"{time_str}.csv")
         with open(csv_file, mode="w", newline='') as f:
             writer = csv.writer(f, delimiter='\t')
-            # writer.writerow(['seed', 'tp', 'sim_time'])
-            writer.writerow(['seed', 'tp'])
+            writer.writerow(['seed', 'tp', 'sim_time'])
+            # writer.writerow(['seed', 'tp'])
         
         for seed in range(n_evals):
             file_path = os.path.join(base_dir, f"ag{ag}", f"{seed}", f"{time_str}.json")
@@ -35,8 +43,10 @@ def parse_eval_results(base_dir, time_str, n_evals):
                 
             with open(csv_file, mode='a', newline='') as file:
                 writer = csv.writer(file, delimiter='\t')
-                # writer.writerow([seed, results["throughput"], results["sim_time"]])
-                writer.writerow([seed, results["throughput"]])
+                if "sim_time" in results.keys():
+                    writer.writerow([seed, results["throughput"], results["sim_time"]])
+                else:
+                    writer.writerow([seed, results["throughput"]])
                 
 
 if __name__ == "__main__":
