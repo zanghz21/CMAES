@@ -295,6 +295,11 @@ void KivaGrid::update_map_weights(bool optimize_wait, std::vector<double> new_we
     // 1. Edge does not go beyond the map.
     // 2. Edge does not go from/to an obstacle.
     // Valid vertices refer to vertices that are not obstacles
+	if (this->weights.size()!=this->rows*this->cols){
+		std::cout << "error weights size! weights size should be " << this->rows*this->cols
+		<<", but actual ="<<this->weights.size()<<std::endl;
+		exit(-1);
+	}
     int j = 0;
 
     // If we optimize wait, the first `this->n_valid_vertices` are wait costs
@@ -325,6 +330,11 @@ void KivaGrid::update_map_weights(bool optimize_wait, std::vector<double> new_we
     }
     for(int i = 0; i < this->rows * this->cols; i++)
     {
+		if (this->weights[i].size()!=5){
+			std::cout << "error weights size at id ["<<i<<"]! weights size should be 5"
+			<<", but actual ="<<this->weights[i].size()<<std::endl;
+			exit(-1);
+		}
         if (this->types[i] == "Obstacle")
 		{
 			continue;
@@ -724,6 +734,10 @@ void KivaGrid::reset_weights(bool consider_rotation, std::string log_dir, bool o
 		for (auto workstation : this->workstations)
 		{
 			this->heuristics[workstation] = compute_heuristics(workstation);
+		}
+		if (this->heuristics.size() != this->endpoints.size() + this->workstations.size()){
+			std::cout << "error h size!"<<std::endl;
+			exit(1);
 		}
 	}
 	cout << table_save_path << endl;

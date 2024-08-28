@@ -119,6 +119,15 @@ void KivaSystem::initialize_goal_locations()
 
 void KivaSystem::update_task_dist(){
 	this->G.update_task_dist(this->gen, this->task_dist_type);
+	if (this->G.endpoints.size() != this->G.end_points_weights.size()){
+		std::cout << "error in end points dist size! "<<std::endl;
+		exit(1);
+	}
+	if (this->G.workstations.size() != this->G.workstation_weights.size()){
+		std::cout << "error in end points dist size! "<<std::endl;
+		exit(1);
+	}
+	
 	this->end_points_dist = discrete_distribution<int>(
 		this->G.end_points_weights.begin(), 
 		this->G.end_points_weights.end()
