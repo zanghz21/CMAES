@@ -1,6 +1,7 @@
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
 import argparse
 import json
-import os
 from env_search.competition.update_model.utils import Map
 from env_search.utils import get_n_valid_edges, get_n_valid_vertices
 from env_search.competition.config import CompetitionConfig
@@ -16,6 +17,7 @@ import csv
 import copy
 import multiprocessing
 from itertools import repeat
+import time
 
 
 logging.basicConfig(level=logging.DEBUG,
@@ -29,8 +31,19 @@ EXP_AGENTS = {
     "ggo33x36": [200, 300, 400, 500, 600, 700, 800], 
     "random": [200, 300, 400, 500, 600, 700, 800], 
     # "room": [100, 500, 1000, 1500, 2000, 2500, 3000], 
-    "room": [100, 200, 300, 400, 500, 600]
+    "room": [100, 200, 300, 400, 500, 600], 
+    # "warehouse_small_narrow": [600],
+    "warehouse_small_narrow": [200, 300, 400, 500, 600, 700, 800, 900, 1000], 
+    "empty": [200, 300, 400, 500, 600, 700, 800, 900]
 }
+
+EXP_AGENTS_RUNTIME = {
+    "sortation_small": [800],
+    "random": [400], 
+    "warehouse_small_narrow": [600], 
+    "empty": [400]
+}
+
 def parse_config(log_dir):
     cfg_file = os.path.join(log_dir, "config.gin")
     gin.parse_config_file(cfg_file, skip_unknown=True)
@@ -65,7 +78,16 @@ def parse_map(map_path):
 
 
 def single_offline_exp(log_dir, optimal_weights, n_e, n_v, seed, base_save_dir, num_agents, timestr):
+    # os.environ["OMP_NUM_THREADS"] = "1"
     cfg, _ = parse_config(log_dir)
+    
+    # offline modifications on cfg
+    cfg.h_update_late = False
+    cfg.past_traffic_interval = 1000
+    cfg.simulation_time = 1000
+    cfg.update_interval = 1000
+    cfg.warmup_time = 20
+    cfg.iter_update_n_sim = 1
     
     save_dir = os.path.join(base_save_dir, f"ag{num_agents}", f"{seed}")
     os.makedirs(save_dir, exist_ok=True)
@@ -75,17 +97,21 @@ def single_offline_exp(log_dir, optimal_weights, n_e, n_v, seed, base_save_dir, 
     cfg_.num_agents = num_agents
     
     
+    t0 = time.time()
     env = CompetitionOnlineEnvNew(n_v, n_e, cfg_, seed=seed)
     obs, info = env.reset()
     done = False
     while not done:
         obs, rew, terminated, truncated, info = env.step(optimal_weights)
         done = terminated or truncated
+    t1 = time.time()
+    sim_time = t1-t0
     tp = info["result"]["throughput"]
     
-    save_data = {"throughput": tp}
+    save_data = {"throughput": tp, "sim_time": sim_time}
     with open(save_path, 'w') as f:
         json.dump(save_data, f)
+    return save_data
     
     
 def single_online_exp(log_dir, model_params, n_e, n_v, seed, base_save_dir, num_agents, timestr):
@@ -99,15 +125,19 @@ def single_online_exp(log_dir, model_params, n_e, n_v, seed, base_save_dir, num_
     cfg_.num_agents = num_agents
     
     module = CompetitionModule(cfg_)
+    
+    t0 = time.time()
     res, _ = module.evaluate_online_update(model_params, "", n_e, n_v, seed, env_type="new")
+    t1 = time.time()
+    run_time = t1-t0
     tp = res['throughput']
     
-    save_data = {"throughput": tp}
+    save_data = {"throughput": tp, "sim_time": run_time}
     with open(save_path, 'w') as f:
         json.dump(save_data, f)
+    return save_data
 
-
-def main(log_dir, n_workers, n_evals, all_results_dir):
+def main(log_dir, n_workers, n_evals, is_runtime, all_results_dir):
     base_save_dir = os.path.join(all_results_dir, "PIBT")
     timestr = get_current_time_str()
     
@@ -127,11 +157,19 @@ def main(log_dir, n_workers, n_evals, all_results_dir):
         map_type = "random"
     elif "room" in cfg.map_path:
         map_type = "room"
+    elif "warehouse_small_narrow" in cfg.map_path:
+        map_type = "warehouse_small_narrow"
+    elif "empty" in cfg.map_path:
+        map_type = "empty"
     else:
         print(f"map path [{cfg.map_path}] cannot be recognized")
         raise NotImplementedError
     
-    agent_ls = EXP_AGENTS[map_type]    
+    if not is_runtime:  
+        agent_ls = EXP_AGENTS[map_type]    
+    else:
+        agent_ls = EXP_AGENTS_RUNTIME[map_type]
+    
     pool = multiprocessing.Pool(n_workers)
     
     exp_agent_ls = []
@@ -146,7 +184,7 @@ def main(log_dir, n_workers, n_evals, all_results_dir):
         algo = "online"
         model_params = get_update_model(log_dir)
         save_dir = os.path.join(base_save_dir, algo, map_type, log_name)
-        pool.starmap(
+        all_data = pool.starmap(
             single_online_exp, 
             zip(
                 repeat(log_dir, n_simulations), 
@@ -163,16 +201,9 @@ def main(log_dir, n_workers, n_evals, all_results_dir):
         algo = "offline"
         optimal_weights = get_offline_weights(log_dir)
         
-        # offline modifications on cfg
-        cfg.h_update_late = False
-        cfg.past_traffic_interval = 1000
-        cfg.simulation_time = 1000
-        cfg.update_interval = 1000
-        cfg.warmup_time = 100
-        cfg.iter_update_n_sim = 1
     
         save_dir = os.path.join(base_save_dir, algo, map_type, log_name)
-        pool.starmap(
+        all_data = pool.starmap(
             single_offline_exp, 
             zip(
                 repeat(log_dir, n_simulations),
@@ -186,13 +217,25 @@ def main(log_dir, n_workers, n_evals, all_results_dir):
             )
         )
     
+    if is_runtime:
+        collected_data = {"sim_time": [], "throughput": []}
+        for data in all_data:
+            for key, v in data.items():
+                if key not in collected_data.keys():
+                    print(key)
+                    raise NotImplementedError
+                collected_data[key].append(v)
+                
+        for key, v in collected_data.items():
+            print(f"key={key}, avg={np.mean(v)}, std={np.std(v, ddof=1)}")
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument('--logdir', type=str, required=True)
     p.add_argument('--n_workers', type=int, required=True)
     p.add_argument('--n_evals', type=int, required=True)
+    p.add_argument('--is_runtime', action="store_true", default=False)
     p.add_argument('--all_results_dir', type=str, default="../results")
     cfg = p.parse_args()
     
-    main(log_dir=cfg.logdir, n_workers=cfg.n_workers, n_evals=cfg.n_evals, all_results_dir=cfg.all_results_dir)
+    main(log_dir=cfg.logdir, n_workers=cfg.n_workers, n_evals=cfg.n_evals, is_runtime=cfg.is_runtime, all_results_dir=cfg.all_results_dir)
