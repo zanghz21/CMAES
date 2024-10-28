@@ -35,13 +35,15 @@ def process_traffic_mapf_results(curr_result_jsons):
     if isinstance(curr_result_jsons, list):
         keys = curr_result_jsons[0].keys()
         curr_result_json = {key: [] for key in keys}
+        new_curr_result_json = {key: [] for key in keys}
         for result_json in curr_result_jsons:
             for key in keys:
                 curr_result_json[key].append(result_json[key])
         
         for key in keys:
-            curr_result_json[key] = np.mean(curr_result_json[key])
+            new_curr_result_json[key] = np.mean(curr_result_json[key])
+            new_curr_result_json[f"{key}_std"] = np.std(curr_result_json[key])
     else:
         raise NotImplementedError
-    results = traffic_mapf_module.process_eval_result(curr_result_json)
+    results = traffic_mapf_module.process_eval_result(new_curr_result_json)
     return results

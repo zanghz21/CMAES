@@ -1,6 +1,6 @@
 include "config/traffic_mapf/base.gin"
 
-experiment.name = "trafficMAPF random"
+experiment.name = "trafficMAPF maze"
 
 TrafficMAPFManager.n_evals = 5
 TrafficMAPFConfig.simu_time = 1000
@@ -23,5 +23,4 @@ Manager.max_evals = 50000
 TrafficMAPFConfig.gen_tasks = True
 TrafficMAPFConfig.use_cached_nn = True
 TrafficMAPFConfig.use_lns = False
-# TrafficMAPFConfig.all_json_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/sortation_small_0_800.json"
-TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/pibt_random_unweight_32x32.map"
+TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/maze-32-32-4.map"

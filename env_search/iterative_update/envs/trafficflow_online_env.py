@@ -197,7 +197,8 @@ class TrafficFlowOnlineEnv:
         # if self.config.has_curr_pos_obs:
         #     curr_pos_obs = self._gen_curr_pos_obs(result)
         #     obs = np.concatenate([obs, curr_pos_obs], axis=0, dtype=np.float32)
-        
+        if self.config.has_map_obs:
+            obs = np.concatenate([obs, self.comp_map.graph.reshape(1, h, w)], dtype=np.float32)
         return obs
 
     
@@ -310,21 +311,21 @@ if __name__ == "__main__":
     import gin
     from env_search.utils import get_n_valid_edges, get_n_valid_vertices
     from env_search.competition.update_model.utils import Map
-    cfg_file_path = "config/traffic_mapf/periodical_on/sortation_small.gin"
+    cfg_file_path = "config/traffic_mapf/periodical_on/empty.gin"
     gin.parse_config_file(cfg_file_path, skip_unknown=True)
     cfg = TrafficMAPFConfig()
-    cfg.num_agents = 400
-    cfg.warmup_time = 10
-    cfg.simu_time = 1000
-    cfg.update_gg_interval = 20
-    cfg.past_traffic_interval = 20
-    cfg.task_dist_change_interval = 200
-    cfg.has_traffic_obs = True
-    cfg.has_gg_obs = False
-    cfg.has_task_obs = False
-    cfg.task_assignment_strategy = "online_generate"
-    cfg.task_random_type = "Gaussian"
-    cfg.dist_sigma = 1.0
+    # cfg.num_agents = 400
+    # cfg.warmup_time = 10
+    # cfg.simu_time = 1000
+    # cfg.update_gg_interval = 20
+    # cfg.past_traffic_interval = 20
+    # cfg.task_dist_change_interval = 200
+    # cfg.has_traffic_obs = True
+    # cfg.has_gg_obs = False
+    # cfg.has_task_obs = False
+    # cfg.task_assignment_strategy = "online_generate"
+    # cfg.task_random_type = "Gaussian"
+    # cfg.dist_sigma = 1.0
     
     
     env = TrafficFlowOnlineEnv(cfg, seed=0)
@@ -345,13 +346,14 @@ if __name__ == "__main__":
         
     np.set_printoptions(threshold=np.inf)
     obs, info = env.reset()
+    # raise NotImplementedError
     # for i in range(5):
     #     vis_arr(obs[i], name=f"step{env.i}_traffic{i}")
     
     done = False
     while not done:
         print(obs.shape)
-        action = np.ones((4, 33, 57))
+        action = np.ones((4, 32, 32))
         obs, reward, terminated, truncated, info = env.step(action)
         # for i in range(5):
         #     vis_arr(obs[i], name=f"step{env.i}_traffic{i}")

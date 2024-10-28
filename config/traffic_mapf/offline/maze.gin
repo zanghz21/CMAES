@@ -1,6 +1,6 @@
 include "config/traffic_mapf/base.gin"
 
-experiment.name = "trafficMAPF random offline"
+experiment.name = "trafficMAPF maze offline"
 
 TrafficMAPFManager.n_evals = 5
 TrafficMAPFConfig.simu_time = 1000

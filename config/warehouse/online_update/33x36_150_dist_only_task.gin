@@ -4,12 +4,17 @@ Manager.initial_mean = 5
 sigma0 = 5
 optimize_wait = False
 
-WarehouseManager.agent_num = 200
+WarehouseManager.agent_num = 150
 WarehouseManager.n_evals = 5
 
 WarehouseManager.lvl_width = 36
 WarehouseManager.lvl_height = 33
 WarehouseManager.bound_handle = "normalization"
+
+WarehouseManager.iterative_update = True
+WarehouseManager.online_update = True
+WarehouseManager.update_model_n_params = 1679
+WarehouseConfig.iter_update_model_type = @WarehouseCNNUpdateModel
 
 ## EvolutionStrategyEmitter ##
 Manager.emitter_types = [(@EvolutionStrategyEmitter, 2)]
@@ -21,13 +26,23 @@ EvolutionStrategyEmitter.selection_rule = "mu"
 EvolutionStrategyEmitter.restart_rule = "basic"
 EvolutionStrategyEmitter.batch_size = 25
 
-experiment.name = "Warehouse Highway 33x36 CMA-ES Human Map 200 agents"
+experiment.name = "33x36 150 online dist only task"
 Manager.is_em = False
 Manager.is_cma_mae = True # This CMA-ES is CMA-MAE with learning rate 0
 
 WarehouseConfig.hamming_only = True
 WarehouseConfig.measure_names = ["edge_weight_std", "edge_weight_mean"]
 WarehouseConfig.overallCutoffTime = 300
+WarehouseConfig.has_future_obs = False
+WarehouseConfig.has_traffic_obs = False
+WarehouseConfig.iter_update_mdl_kwargs = {
+    "nc": 1,
+    "kernel_size": 3,
+    "n_hid_chan": 32,
+}
+WarehouseConfig.task_dist_update_interval = 200
+WarehouseConfig.task_dist_type = "Gaussian"
+
 
 # ## GridArchive ##
 GridArchive.dims = [25, 25]

@@ -127,7 +127,7 @@ class CompetitionResult:  # pylint: disable = too-many-instance-attributes
             agg_obj=agg_obj,
             agg_measures=agg_measures,
             agg_result_obj=agg_result_obj,
-            # std_obj=maybe_std(objs, std_indices),
+            std_obj=maybe_std(competition_metadata.objs),
             # std_measure=maybe_std(measures, std_indices),
         )
 

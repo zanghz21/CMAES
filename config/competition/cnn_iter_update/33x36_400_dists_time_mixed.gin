@@ -2,10 +2,10 @@ include "config/competition/base.gin"
 
 Manager.initial_mean = 5
 sigma0 = 5
-base_map_path = "maps/competition/online_map/room-32-32-4.json"
+base_map_path = "maps/competition/human/pibt_warehouse_33x36_w_mode.json"
 
-CompetitionManager.lvl_width = 32
-CompetitionManager.lvl_height = 32
+CompetitionManager.lvl_width = 36
+CompetitionManager.lvl_height = 33
 CompetitionManager.bound_handle = "normalization"
 CompetitionManager.iterative_update = True
 CompetitionManager.update_model_n_params = 4271
@@ -16,15 +16,9 @@ CompetitionConfig.iter_update_model_type = @CompetitionCNNUpdateModel
 
 CompetitionConfig.task_dist_change_interval = 200
 CompetitionConfig.task_random_type = "GaussianMixed"
-CompetitionConfig.task_assignment_strategy = "online_generate"
+CompetitionConfig.dist_K = 3
 
-CompetitionConfig.h_update_late = False
-
-CompetitionConfig.iter_update_mdl_kwargs = {
-    "nc": 10,
-    "kernel_size": 3,
-    "n_hid_chan": 32,
-}
+# CompetitionConfig.random_iter = 5
 
 ## EvolutionStrategyEmitter ##
 Manager.emitter_types = [(@EvolutionStrategyEmitter, 2)]
@@ -36,7 +30,7 @@ EvolutionStrategyEmitter.selection_rule = "mu"
 EvolutionStrategyEmitter.restart_rule = "basic"
 EvolutionStrategyEmitter.batch_size = 25
 
-experiment.name = "32x32 room 400 off dist"
+experiment.name = "Comp 33x36 400 off dist"
 Manager.is_em = False
 Manager.is_cma_mae = True # This CMA-ES is CMA-MAE with learning rate 0
 Manager.bounds = None
@@ -44,6 +38,11 @@ Manager.max_evals = 50000
 
 CompetitionConfig.measure_names = ["wait_cost_std", "edge_weight_std"]
 CompetitionConfig.iter_update_max_iter = 1
+CompetitionConfig.iter_update_mdl_kwargs = {
+    "nc": 10,
+    "kernel_size": 3,
+    "n_hid_chan": 32,
+}
 
 # ## GridArchive ##
 GridArchive.dims = [25, 25]

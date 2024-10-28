@@ -21,6 +21,8 @@ class TrafficMAPFConfig:
     output_size: int = 4
     hidden_size: int = 50
     net_type: str = "quad"
+    net_input_type: str = "flow"
+    past_traffic_interval: int = -1
     use_cached_nn: bool = False
     default_obst_flow: float = 0.0
     learn_obst_flow: bool = False
@@ -45,7 +47,7 @@ class TrafficMAPFConfig:
     has_traffic_obs: bool = True
     has_gg_obs: bool = False
     has_task_obs: bool = True
-        
+    has_map_obs: bool = False        
     
     # varied dist
     task_dist_change_interval: int = -1
