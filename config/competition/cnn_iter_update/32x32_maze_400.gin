@@ -2,7 +2,7 @@ include "config/competition/base.gin"
 
 Manager.initial_mean = 5
 sigma0 = 5
-base_map_path = "maps/competition/online_map/room-32-32-4.json"
+base_map_path = "maps/competition/human/pibt_maze-32-32-4.json"
 
 CompetitionManager.lvl_width = 32
 CompetitionManager.lvl_height = 32
@@ -13,10 +13,6 @@ CompetitionManager.update_model_n_params = 4271
 CompetitionConfig.num_agents=400
 CompetitionConfig.simulation_time = 1000
 CompetitionConfig.iter_update_model_type = @CompetitionCNNUpdateModel
-
-CompetitionConfig.task_dist_change_interval = 200
-CompetitionConfig.task_random_type = "GaussianMixed"
-CompetitionConfig.task_assignment_strategy = "online_generate"
 
 CompetitionConfig.h_update_late = False
 
@@ -36,7 +32,7 @@ EvolutionStrategyEmitter.selection_rule = "mu"
 EvolutionStrategyEmitter.restart_rule = "basic"
 EvolutionStrategyEmitter.batch_size = 25
 
-experiment.name = "32x32 room 400 off dist"
+experiment.name = "32x32 maze 400 off"
 Manager.is_em = False
 Manager.is_cma_mae = True # This CMA-ES is CMA-MAE with learning rate 0
 Manager.bounds = None

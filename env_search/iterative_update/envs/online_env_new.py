@@ -126,7 +126,7 @@ class CompetitionOnlineEnvNew:
         return exec_future_usage, plan_future_usage
         
         
-    def _gen_traffic_obs_new(self, is_init=False):
+    def _gen_traffic_obs_new(self, is_init=False, vis=False):
         h, w = self.comp_map.graph.shape
         edge_usage = np.zeros((4, h, w))
         wait_usage = np.zeros((1, h, w))
@@ -151,15 +151,30 @@ class CompetitionOnlineEnvNew:
                     # if env.i > 0:
                     #     print(prev_x, prev_y)
                     wait_usage[0, prev_x, prev_y] += 1
-        
         # print("max", wait_usage.max(), wait_usage.argmax(), edge_usage.max(), edge_usage.argmax())
-        if wait_usage.sum() != 0:
-            wait_usage = wait_usage/wait_usage.sum() * 100
-        if edge_usage.sum() != 0:
-            edge_usage = edge_usage/edge_usage.sum() * 100
+        if not vis:
+            if wait_usage.sum() != 0:
+                wait_usage = wait_usage/wait_usage.sum() * 100
+            if edge_usage.sum() != 0:
+                edge_usage = edge_usage/edge_usage.sum() * 100
         # print("new, wait_usage:", wait_usage.max(), "edge_usage:", edge_usage.max())
         return wait_usage, edge_usage
 
+    def _gen_v_usage(self, is_init=False):
+        h, w = self.comp_map.graph.shape
+        v_usage = np.zeros((h, w))
+        
+        if not is_init:
+            time_range = min(self.config.past_traffic_interval, self.config.simulation_time-self.left_timesteps)
+        else:
+            time_range = min(self.config.past_traffic_interval, self.config.warmup_time)
+        
+        for t in range(time_range):
+            for agent_i in range(self.config.num_agents):
+                curr_x, curr_y = self.pos_hists[agent_i][-(time_range-t)]
+                v_usage[curr_x, curr_y] += 1
+        return v_usage
+        
     def _gen_task_obs(self, result):
         h, w = self.comp_map.graph.shape
         task_usage = np.zeros((1, h, w))
@@ -185,6 +200,22 @@ class CompetitionOnlineEnvNew:
             pos_usage[1, x, y] = (gy-y)/w
         return pos_usage
         
+    def _gen_gg_obs(self):
+        h, w = self.comp_map.height, self.comp_map.width
+        wait_costs = min_max_normalize(self.curr_wait_costs, 0.1, 1)
+        edge_weights = min_max_normalize(self.curr_edge_weights, 0.1, 1)
+        wait_cost_matrix = np.array(
+            comp_uncompress_vertex_matrix(self.comp_map, wait_costs))
+        edge_weight_matrix = np.array(
+            comp_uncompress_edge_matrix(self.comp_map, edge_weights))
+        edge_weight_matrix = edge_weight_matrix.reshape(h, w, 4)
+        wait_cost_matrix = wait_cost_matrix.reshape(h, w, 1)
+        
+        edge_weight_matrix = np.moveaxis(edge_weight_matrix, 2, 0)
+        wait_cost_matrix = np.moveaxis(wait_cost_matrix, 2, 0)
+
+        gg_obs = np.concatenate([edge_weight_matrix, wait_cost_matrix], axis=0, dtype=np.float32)
+        return gg_obs
     
     def _gen_obs(self, result, is_init=False):
         h, w = self.comp_map.height, self.comp_map.width
@@ -195,19 +226,7 @@ class CompetitionOnlineEnvNew:
             obs = np.concatenate([obs, traffic_obs], axis=0, dtype=np.float32)
             
         if self.config.has_gg_obs:
-            wait_costs = min_max_normalize(self.curr_wait_costs, 0.1, 1)
-            edge_weights = min_max_normalize(self.curr_edge_weights, 0.1, 1)
-            wait_cost_matrix = np.array(
-                comp_uncompress_vertex_matrix(self.comp_map, wait_costs))
-            edge_weight_matrix = np.array(
-                comp_uncompress_edge_matrix(self.comp_map, edge_weights))
-            edge_weight_matrix = edge_weight_matrix.reshape(h, w, 4)
-            wait_cost_matrix = wait_cost_matrix.reshape(h, w, 1)
-            
-            edge_weight_matrix = np.moveaxis(edge_weight_matrix, 2, 0)
-            wait_cost_matrix = np.moveaxis(wait_cost_matrix, 2, 0)
-
-            gg_obs = np.concatenate([edge_weight_matrix, wait_cost_matrix], axis=0, dtype=np.float32)
+            gg_obs = self._gen_gg_obs()
             obs = np.concatenate([obs, gg_obs], axis=0, dtype=np.float32)
             
         if self.config.has_future_obs:
@@ -219,11 +238,12 @@ class CompetitionOnlineEnvNew:
         if self.config.has_curr_pos_obs:
             curr_pos_obs = self._gen_curr_pos_obs(result)
             obs = np.concatenate([obs, curr_pos_obs], axis=0, dtype=np.float32)
-        
+        if self.config.has_map_obs:
+            obs = np.concatenate([obs, self.comp_map.graph.reshape(1, h, w)], axis=0, dtype=np.float32)
         return obs
 
             
-    def get_base_kwargs(self):
+    def get_base_kwargs(self, save_paths=False):
         # TODO: SEED!!!
         kwargs = {
             "left_w_weight": self.config.left_right_ratio, 
@@ -244,8 +264,8 @@ class CompetitionOnlineEnvNew:
             "update_gg_interval": self.config.update_interval, 
             "h_update_late": self.config.h_update_late, 
             "dist_sigma": self.config.dist_sigma, 
-            "dist_K": self.config.dist_K
-            # "save_paths": True
+            "dist_K": self.config.dist_K, 
+            "save_paths": save_paths
         }
         if not self.config.gen_random:
             file_dir = os.path.join(get_project_dir(), 'run_files', 'gen_task')
@@ -277,9 +297,7 @@ class CompetitionOnlineEnvNew:
     
         
     def _run_sim(self,
-                 init_weight=False,
-                 manually_clean_memory=True,
-                 save_in_disk=True):
+                 init_weight=False):
         """Run one simulation on the current edge weights and wait costs
 
         Args:
@@ -297,10 +315,9 @@ class CompetitionOnlineEnvNew:
             wait_costs = min_max_normalize(self.curr_wait_costs, self.lb,
                                            self.ub).tolist()
         
-        kwargs = self.get_base_kwargs()
-        kwargs["weights"] = json.dumps(edge_weights)
-        kwargs["wait_costs"] = json.dumps(wait_costs)
-        
+        # kwargs = self.get_base_kwargs()
+        # kwargs["weights"] = json.dumps(edge_weights)
+        # kwargs["wait_costs"] = json.dumps(wait_costs)
 
         result_str = self.simulator.update_gg_and_step(edge_weights, wait_costs)
         result = json.loads(result_str)
@@ -367,7 +384,11 @@ class CompetitionOnlineEnvNew:
             "curr_edge_weights": self.curr_edge_weights,
         }
 
-        return self._gen_obs(result), reward, terminated, truncated, info
+        # t0 = time.time()
+        obs = self._gen_obs(result)
+        # t1 = time.time()
+        # print("gen obs time =", t1-t0)
+        return obs, reward, terminated, truncated, info
 
     
     def reset(self, seed=None, options=None):
@@ -396,7 +417,11 @@ class CompetitionOnlineEnvNew:
             self.curr_wait_costs = np.array(weights[:self.n_valid_vertices])
             self.curr_edge_weights = np.array(weights[self.n_valid_vertices:])
             
-        kwargs = self.get_base_kwargs()
+        if options is not None:
+            save_paths = options.get("save_paths", False)
+        else:
+            save_paths = False
+        kwargs = self.get_base_kwargs(save_paths)
         kwargs["weights"] = json.dumps(self.curr_edge_weights.tolist())
         kwargs["wait_costs"] = json.dumps(self.curr_wait_costs.tolist())
         self.simulator = py_sim(**kwargs)
@@ -417,23 +442,24 @@ if __name__ == "__main__":
     gin.parse_config_file(cfg_file_path)
     cfg = CompetitionConfig()
     cfg.has_future_obs = False
-    cfg.num_agents = 400
-    cfg.warmup_time = 10
+    cfg.num_agents = 800
+    cfg.warmup_time = 20
     cfg.simulation_time = 1000
-    cfg.update_interval = 200
-    cfg.past_traffic_interval = 200
-    cfg.task_dist_change_interval = 500
+    cfg.update_interval = 20
+    cfg.past_traffic_interval = 20
+    cfg.task_dist_change_interval = -1
     cfg.has_traffic_obs = True
     cfg.has_gg_obs = False
-    cfg.has_task_obs = False
+    cfg.has_task_obs = True
     cfg.has_curr_pos_obs = False
     cfg.task_assignment_strategy = "online_generate"
     cfg.task_random_type = "Gaussian"
     cfg.dist_sigma = 1.0
     
     # cfg.gen_random = False
-    # cfg.map_base_path = "maps/competition/online_map/sortation_small.json"
-    cfg.map_path = "maps/competition/human/pibt_random_unweight_32x32.json"
+    cfg.map_base_path = "maps/competition/online_map/sortation_small.json"
+    # cfg.map_path = "maps/competition/human/pibt_random_unweight_32x32.json"
+    # cfg.map_path = "maps/competition/online_map/warehouse_small_narrow.json"
     
     comp_map = Map(cfg.map_path)
     domain = "competition"
@@ -460,6 +486,7 @@ if __name__ == "__main__":
     obs, info = env.reset()
     for i in range(5):
         vis_arr(obs[i], name=f"step{env.i}_traffic{i}")
+    vis_arr(obs[-1], name=f"step{env.i}_task{i}")
     
     done = False
     while not done:
@@ -468,6 +495,7 @@ if __name__ == "__main__":
         obs, reward, terminated, truncated, info = env.step(action)
         for i in range(5):
             vis_arr(obs[i], name=f"step{env.i}_traffic{i}")
+        vis_arr(obs[-1], name=f"step{env.i}_task{i}")
         done = terminated or truncated
     
     print(info["result"]["throughput"])

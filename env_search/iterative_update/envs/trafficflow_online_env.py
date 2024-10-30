@@ -197,7 +197,8 @@ class TrafficFlowOnlineEnv:
         # if self.config.has_curr_pos_obs:
         #     curr_pos_obs = self._gen_curr_pos_obs(result)
         #     obs = np.concatenate([obs, curr_pos_obs], axis=0, dtype=np.float32)
-        
+        if self.config.has_map_obs:
+            obs = np.concatenate([obs, self.comp_map.graph.reshape(1, h, w)], dtype=np.float32)
         return obs
 
     

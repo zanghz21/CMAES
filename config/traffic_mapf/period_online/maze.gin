@@ -1,6 +1,6 @@
 include "config/traffic_mapf/base.gin"
 
-experiment.name = "trafficMAPF random periodical on"
+experiment.name = "trafficMAPF maze periodical on"
 
 TrafficMAPFConfig.simu_time = 1000
 
@@ -22,4 +22,4 @@ TrafficMAPFConfig.iter_update_mdl_kwargs = {
     "n_hid_chan": 32,
 }
 
-TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/pibt_random_unweight_32x32.map"
+TrafficMAPFConfig.map_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/maze-32-32-4.map"

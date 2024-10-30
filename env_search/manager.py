@@ -692,6 +692,11 @@ class Manager:  # pylint: disable = too-many-instance-attributes
             logger.info("Adding solutions to the scheduler")
 
         objs = []
+        obj_stds = []
+        
+        max_obj = -1
+        max_obj_std = -1
+        
         result_archive_objs = []
         if not self.is_em:
             measures, metadata, success_mask = [], [], []
@@ -700,7 +705,17 @@ class Manager:  # pylint: disable = too-many-instance-attributes
             if not r.failed:
                 obj = r.agg_obj
                 obj_result = r.agg_result_obj
+                
+                obj_std = r.std_obj
+                
+                if max_obj == -1 or obj > max_obj:
+                    max_obj = obj
+                    max_obj_std = obj_std
+                    
+                
                 objs.append(obj)  # Always insert objs.
+                obj_stds.append(obj_std)
+                
                 result_archive_objs.append(obj_result)  # objs used for the
                 # result archive,
                 # if applicable
@@ -750,6 +765,10 @@ class Manager:  # pylint: disable = too-many-instance-attributes
         self.metrics.add("Mean Evaluation", np.nanmean(objs), logger)
         self.stats["curr_mean"] = np.nanmean(objs)
         self.stats["curr_std"] = np.nanstd(objs)
+        self.stats["avg_obj_std_over_all_sol"] = np.nanmean(obj_stds)
+        self.stats["curr_best_sol_obj"] = max_obj
+        self.stats["curr_best_sol_std"] = max_obj_std
+        
         self.overall_min_obj = min(self.overall_min_obj, np.nanmin(objs))
 
     def evaluate_initial_emulation_solutions(self):

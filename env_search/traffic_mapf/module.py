@@ -44,6 +44,8 @@ class TrafficMAPFModule:
             "use_all_flow": self.config.use_all_flow, 
             "output_size": self.config.output_size, 
             "net_type": self.config.net_type, 
+            "net_input_type": self.config.net_input_type,
+            "past_traffic_interval": self.config.past_traffic_interval,  
             "network_params": json.dumps(nn_weights_list), 
             "gen_tasks": self.config.gen_tasks,  
             "num_agents": self.config.num_agents, 
@@ -194,8 +196,10 @@ print("{delimiter}")
     def process_eval_result(self, curr_result_json):
         throughput = curr_result_json.get("throughput")
         obj = throughput
+        throughput_std = curr_result_json.get("throughput_std")
+
         return TrafficMAPFResult.from_raw(
-            obj=obj, throughput=throughput
+            obj=obj, throughput=throughput, throughput_std=throughput_std
         )
     
     def actual_qd_score(self, objs):
