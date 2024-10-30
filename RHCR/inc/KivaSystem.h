@@ -29,10 +29,11 @@ private:
 	void initialize();
 	void initialize_start_locations();
 	void initialize_goal_locations();
-	void update_goal_locations();
+	void update_goal_locations(int t);
 	int gen_next_goal(int agent_id, bool repeat_last_goal=false);
     int sample_workstation();
 	int sample_end_points();
+	void update_start_locations(int t);
     tuple<vector<double>, double, double> edge_pair_usage_mean_std(
         vector<vector<double>> &edge_usage);
     tuple<vector<vector<vector<double>>>, vector<vector<double>>> convert_edge_usage(vector<vector<double>> &edge_usage);

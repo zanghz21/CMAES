@@ -98,6 +98,7 @@ class WarehouseOnlineEnv:
                     edge_usage[3, prev_r, prev_c] += 1
                 else:
                     print(prev_loc, curr_loc)
+                    print(self.pos_hists[agent_i])
                     raise NotImplementedError
         
         # print("max", wait_usage.max(), wait_usage.argmax(), edge_usage.max(), edge_usage.argmax())
@@ -220,6 +221,7 @@ class WarehouseOnlineEnv:
             "cutoffTime": self.config.cutoffTime,
             "OverallCutoffTime": self.config.overallCutoffTime, 
             "screen": self.config.screen,
+            # "screen": 1, 
             "solver": self.config.solver,
             "id": self.config.id,
             "single_agent_solver": self.config.single_agent_solver,
@@ -280,6 +282,8 @@ class WarehouseOnlineEnv:
                 all_weights = min_max_normalize(all_weights, self.lb, self.ub)
                 new_weights = all_weights.tolist()
 
+        # print(new_weights[:5])
+        # raise NotImplementedError
         result_jsonstr = self.simulator.update_gg_and_step(self.config.optimize_wait, new_weights)
         result = json.loads(result_jsonstr)
         
@@ -361,7 +365,9 @@ if __name__ == "__main__":
     from env_search.warehouse.update_model.update_model import WarehouseCNNUpdateModel
 
     map_path = "maps/warehouse/human/kiva_large_w_mode.json"
+    map_path = "maps/warehouse/sortation_small.json"
     cfg_file_path = "config/warehouse/online_update/33x36.gin"
+    cfg_file_path = "config/warehouse/online_update/sort_200_dist_sigma.gin"
     gin.parse_config_file(cfg_file_path, skip_unknown=True)
     cfg = WarehouseConfig()
     cfg.has_future_obs = False
@@ -371,8 +377,9 @@ if __name__ == "__main__":
     cfg.has_traffic_obs = True
     cfg.has_gg_obs = False
     cfg.has_task_obs = True
-    cfg.task_dist_update_interval = 200
+    cfg.task_dist_update_interval = -1
     cfg.task_dist_type = "Gaussian"
+    cfg.dist_sigma = 0.5
     print("cutoff:", cfg.overallCutoffTime)
     
     domain = "kiva"
@@ -397,9 +404,9 @@ if __name__ == "__main__":
         plt.savefig(os.path.join(save_dir, f"{name}.png"))
         plt.close()
     
-    for i in range(5):
+    for i in range(1):
         
-        env = WarehouseOnlineEnv(base_map_np, map_json, num_agents=100, eval_logdir='test', 
+        env = WarehouseOnlineEnv(base_map_np, map_json, num_agents=200, eval_logdir='test', 
                              n_valid_vertices=n_valid_vertices, n_valid_edges=n_valid_edges, 
                              config=cfg, seed=0)
         cnt = 0

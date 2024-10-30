@@ -139,6 +139,7 @@ Path SIPP::run(const BasicGraph& G,
             std::get<0>(goal_location.back()));
     while (!focal_list.empty())
     {
+        // std::cout << "sipp, pop node" <<std::endl;
         SIPPNode* curr = focal_list.top(); focal_list.pop();
         open_list.erase(curr->open_handle);
         curr->in_openlist = false;
@@ -199,6 +200,7 @@ Path SIPP::run(const BasicGraph& G,
 
 
         // expand the nodes
+        // std::cout << "sipp, expand node" <<std::endl;
         for (int orientation = 0; orientation < 4; orientation++) // move
         {
             if (!G.valid_move(curr->state.location, orientation)) // the edge is blocked
@@ -211,8 +213,10 @@ Path SIPP::run(const BasicGraph& G,
             if (degree > std::get<1>(curr->interval) - curr->state.timestep) // don't have enough time to turn
                 continue;
             int location = curr->state.location + G.move[orientation];
+            // std::cout << "compute h value, location ="<<location <<", goal id = "<< curr->goal_id <<std::endl;
             double h_val = compute_h_value(G, location, curr->goal_id, goal_location);
-            if (h_val > INT_MAX)   // This vertex cannot reach the goal vertex
+            // std::cout << "h value = "<<h_val <<std::endl;
+            if (h_val >= WEIGHT_MAX)   // This vertex cannot reach the goal vertex
                 continue;
             int min_timestep = curr->state.timestep + degree + 1;
             for (auto interval : rt.getSafeIntervals(curr->state.location, location, min_timestep, std::get<1>(curr->interval) + 1))
@@ -250,6 +254,7 @@ Path SIPP::run(const BasicGraph& G,
         }
 
         // update FOCAL if min f-val increased
+        // std::cout << "whether focal" <<std::endl;
         if (open_list.empty())  // in case OPEN is empty, no path found
         {
             if(prioritize_start) // the agent has the highest priority at its start location
@@ -294,6 +299,7 @@ Path SIPP::run(const BasicGraph& G,
     }  // end while loop
 
     // no path found
+    // std::cout << "sipp, post process" <<std::endl;
     releaseClosedListNodes();
     open_list.clear();
     focal_list.clear();

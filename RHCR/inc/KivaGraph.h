@@ -31,6 +31,7 @@ public:
     int get_n_valid_edges() const;
 
     void initialize_end_points_weights(){
+        this->end_points_weights.clear();
         this->end_points_weights.resize(this->endpoints.size(), 1.0);
     }
     void parseMap(std::vector<std::vector<double>>& map_e, std::vector<std::vector<double>>& map_w);

@@ -194,6 +194,7 @@ void BasicGraph::save_heuristics_table(std::string fname)
 
 std::vector<double> BasicGraph::compute_heuristics(int root_location)
 {
+    // std::cout << "start computing h for loc = "<< root_location <<std::endl;
     std::vector<double> res(this->size(), DBL_MAX);
 	fibonacci_heap< StateTimeAStarNode*, compare<StateTimeAStarNode::compare_node> > heap;
     unordered_set< StateTimeAStarNode*, StateTimeAStarNode::Hasher, StateTimeAStarNode::EqNode> nodes;

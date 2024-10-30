@@ -325,8 +325,10 @@ bool PBS::find_path(PBSNode* node, int agent)
     runtime_rt += (double)(std::clock() - t) / CLOCKS_PER_SEC;
 
     t = std::clock();
+    // std::cout << "path planner run" <<std::endl;
     path = path_planner.run(G, starts[agent], goal_locations[agent], rt);
-	runtime_plan_paths += (double)(std::clock() - t) / CLOCKS_PER_SEC;
+	// std::cout << "get path" <<std::endl;
+    runtime_plan_paths += (double)(std::clock() - t) / CLOCKS_PER_SEC;
     path_cost = get_path_cost(path);
     // t = std::clock();
     // rt.clear();
@@ -415,38 +417,50 @@ bool PBS::find_consistent_paths(PBSNode* node, int agent)
     unordered_set<int> replan;
     if (agent >= 0 && agent < num_of_agents)
         replan.insert(agent);
+
+    // std::cout << "find replan agents" <<std::endl;
     find_replan_agents(node, node->conflicts, replan);
     /*clock_t t2 = clock();
     PathTable pt(paths, window, k_robust);
     runtime_detect_conflicts += (double)(std::clock() - t2) / CLOCKS_PER_SEC;*/
+    // std::cout << "while loop" <<std::endl;
     while (!replan.empty())
     {
+        // std::cout << "1" <<std::endl;
         if (count > (int) node->paths.size() * 5)
         {
             runtime_find_consistent_paths += (double)(std::clock() - t) / CLOCKS_PER_SEC;
             return false;
         }
+        // std::cout << "get a" <<std::endl;
+        // std::cout << "replan size =" <<replan.size() <<std::endl;
         int a = *replan.begin();
+        // std::cout << "erase a" <<std::endl;
         replan.erase(a);
         count++;
         /*t2 = clock();
         pt.remove(paths[a], a);
         runtime_detect_conflicts += (double)(std::clock() - t2) / CLOCKS_PER_SEC;*/
+        // std::cout << "find path" <<std::endl;
         if (!find_path(node, a))
         {
             runtime_find_consistent_paths += (double)(std::clock() - t) / CLOCKS_PER_SEC;
             return false;
         }
+        // std::cout << "rm conf" <<std::endl;
         remove_conflicts(node->conflicts, a);
         list<Conflict> new_conflicts;
+        // std::cout << "find conf" <<std::endl;
         find_conflicts(new_conflicts, a);
         /*t2 = clock();
         std::list< std::shared_ptr<Conflict> > new_conflicts = pt.add(paths[a], a);
         runtime_detect_conflicts += (double)(std::clock() - t2) / CLOCKS_PER_SEC;*/
+        // std::cout << "find replan" <<std::endl;
         find_replan_agents(node, new_conflicts, replan);
 
         node->conflicts.splice(node->conflicts.end(), new_conflicts);
     }
+    // std::cout <<"post process" <<std::endl;
     runtime_find_consistent_paths += (double)(std::clock() - t) / CLOCKS_PER_SEC;
     if (screen == 2)
         return validate_consistence(node->conflicts, node->priorities);
@@ -507,10 +521,12 @@ bool PBS::generate_child(PBSNode* node, PBSNode* parent)
     else
     {
         clock_t t = clock();
+        // std::cout << "copy conf" <<std::endl;
         node->priorities.copy(node->parent->priorities);
         node->priorities.add(node->priority.first, node->priority.second);
         runtime_copy_priorities += (double)(std::clock() - t) / CLOCKS_PER_SEC;
         copy_conflicts(node->parent->conflicts, node->conflicts, -1); // copy all conflicts
+        // std::cout << "find consistent path" <<std::endl;
         if (!find_consistent_paths(node, node->priority.first))
             return false;
     }
@@ -642,6 +658,7 @@ bool PBS::run(
     int time_limit,
     const vector<int>& waited_time)
 {
+    // std::cout << "pbs, clear and init" <<std::endl;
     clear();
 
     // set timer
@@ -677,6 +694,7 @@ bool PBS::run(
     }
 
     // start the loop
+    // std::cout << "pbs, search loop" <<std::endl;
 	while (!dfs.empty() && !solution_found)
 	{
 		runtime = (double)(std::clock() - start)  / CLOCKS_PER_SEC;
@@ -712,13 +730,17 @@ bool PBS::run(
 		PBSNode* n[2];
         for (auto & i : n)
                 i = new PBSNode();
+        
+        // std::cout << "resolve conflict" <<std::endl;
 	    resolve_conflict(curr->conflict, n[0], n[1]);
 
         // int loc = std::get<2>(*curr->conflict);
         vector<Path*> copy(paths);
         for (auto & i : n)
         {
+            // std::cout << "generate_child" <<std::endl;
             bool sol = generate_child(i, curr);
+            // std::cout << "child sol = "<<sol<<std::endl;
             if (sol)
             {
                 HL_num_generated++;
@@ -783,6 +805,7 @@ bool PBS::run(
 	}  // end of while loop
 
 
+    // std::cout << "pbs, postprocess" <<std::endl;
 	runtime = (double)(std::clock() - start) / CLOCKS_PER_SEC;
     get_solution();
 	if (solution_found && !validate_solution())

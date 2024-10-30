@@ -252,6 +252,12 @@ def tile_usage_heatmap_from_qd(
             base_map_path = gin.query_parameter(
                 "WarehouseManager.base_map_path")
             optimize_wait = gin.query_parameter(f"%optimize_wait")
+            
+            try:
+                iterative_update = gin.query_parameter(
+                    "WarehouseManager.iterative_update")
+            except ValueError:
+                iterative_update = False
 
             with open(base_map_path, "r") as f:
                 base_map_json = json.load(f)
@@ -291,9 +297,11 @@ def tile_usage_heatmap_from_qd(
 
             if domain == "trafficMAPF":
                 update_model_type = gin.query_parameter("TrafficMAPFConfig.net_type")
-            else:
+            elif domain == "competition":
                 update_model_type = gin.query_parameter(
                 "CompetitionConfig.iter_update_model_type")
+            elif domain == "kiva":
+                update_model_type = "cnn"
 
             write_iter_update_model_to_json(
                 logdir.pfile("optimal_update_model.json"),
