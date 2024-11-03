@@ -19,6 +19,7 @@ test.json
 table.txt
 
 debug/
+debug_logs/
 data/
 
 env_search/comparison

@@ -288,7 +288,7 @@ class TrafficFlowOnlineEnv:
         self.move_hists = [[] for _ in range(self.config.num_agents)]
 
         if self.config.reset_weights_path is None:
-            self.curr_weights = np.ones(self.comp_map.height*self.comp_map.width*4)
+            self.curr_weights = np.ones((self.comp_map.height, self.comp_map.width, 4))
         else:
             with open(self.config.reset_weights_path, "r") as f:
                 weights_json = json.load(f)
@@ -311,10 +311,10 @@ if __name__ == "__main__":
     import gin
     from env_search.utils import get_n_valid_edges, get_n_valid_vertices
     from env_search.competition.update_model.utils import Map
-    cfg_file_path = "config/traffic_mapf/periodical_on/empty.gin"
+    cfg_file_path = "config/traffic_mapf/period_online/empty.gin"
     gin.parse_config_file(cfg_file_path, skip_unknown=True)
     cfg = TrafficMAPFConfig()
-    # cfg.num_agents = 400
+    cfg.num_agents = 2
     # cfg.warmup_time = 10
     # cfg.simu_time = 1000
     # cfg.update_gg_interval = 20
@@ -346,10 +346,9 @@ if __name__ == "__main__":
         
     np.set_printoptions(threshold=np.inf)
     obs, info = env.reset()
-    # raise NotImplementedError
+    print("after reset!")
     # for i in range(5):
     #     vis_arr(obs[i], name=f"step{env.i}_traffic{i}")
-    
     done = False
     while not done:
         print(obs.shape)

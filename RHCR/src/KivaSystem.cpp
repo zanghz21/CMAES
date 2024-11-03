@@ -24,6 +24,11 @@ void KivaSystem::initialize()
     waited_time.resize(num_of_drives, 0);
     is_tasking.resize(num_of_drives, false);
 	bool succ = load_records(); // continue simulating from the records
+	if (succ){
+		std::cout << "load_records = "<<succ<<", timestep = "<<timestep<<std::endl;
+	}
+	// exit(-1);
+
 	if (!succ)
 	{
 		timestep = 0;
@@ -103,6 +108,16 @@ void KivaSystem::initialize_start_locations()
 	}
 }
 
+void KivaSystem::update_start_locations(int t)
+{
+    // std::cout << "in update start location, timestep = "<<timestep<<std::endl;
+    for (int k = 0; k < num_of_drives; k++)
+    {
+        starts[k] = State(paths[k][timestep+t].location, 0, paths[k][timestep+t].orientation);
+        // std::cout << "agent "<<k<<": loc="<<starts[k].location<<std::endl;
+    }
+}
+
 void KivaSystem::initialize_goal_locations()
 {
 	cout << "Initializing goal locations" << endl;
@@ -114,6 +129,7 @@ void KivaSystem::initialize_goal_locations()
 	{
 		int goal = G.endpoints[rand() % (int)G.endpoints.size()];
 		goal_locations[k].emplace_back(goal, 0, 0);
+		// std::cout << "agent "<<k<<" init goal is "<< goal<<std::endl;
 	}
 }
 
@@ -168,7 +184,8 @@ int KivaSystem::gen_next_goal(int agent_id, bool repeat_last_goal)
 		{
 			if (repeat_last_goal)
 			{
-				next = G.endpoints[rand() % (int)G.endpoints.size()];
+				// next = G.endpoints[rand() % (int)G.endpoints.size()];
+				next = this->sample_end_points();
 			}
 			else
 			{
@@ -187,13 +204,58 @@ int KivaSystem::gen_next_goal(int agent_id, bool repeat_last_goal)
 				next = this->sample_end_points();
 				this->next_goal_type[agent_id] = "w";
 			}
+		} else {
+			std::cout << "error! next goal type is not w or e, but "<<this->next_goal_type[agent_id]<<std::endl;
+			exit(1); 
 		}
 	}
+
+	// switch (agent_id){
+	// 	case 15:
+	// 		next = 416;
+	// 		break;
+	// 	case 55:
+	// 		next = 827;
+	// 		break;
+	// 	case 60:
+	// 		next = 271;
+	// 		break;
+	// 	case 38:
+	// 		next = 269;
+	// 		break;
+	// 	case 41:
+	// 		next = 287;
+	// 		break;
+	// 	case 71:
+	// 		next = 272;
+	// 		break;
+	// 	case 1:
+	// 		next = 684;
+	// 		break;
+	// 	case 24:
+	// 		next = 274;
+	// 		break;
+	// 	case 70:
+	// 		next = 341;
+	// 		break;
+	// 	case 44:
+	// 		next = 273;
+	// 		break;
+	// 	case 49:
+	// 		next = 36;
+	// 		break;
+	// 	case 86:
+	// 		next = 344;
+	// 		break;
+	// 	default:
+	// 		std::cout << "agent_id = "<<agent_id<<std::endl;
+	// 		exit(-1);
+	// }
 
 	return next;
 }
 
-void KivaSystem::update_goal_locations()
+void KivaSystem::update_goal_locations(int t)
 {
     if (!this->LRA_called)
         new_agents.clear();
@@ -202,7 +264,7 @@ void KivaSystem::update_goal_locations()
 		unordered_map<int, int> held_locations; // <location, agent id>
 		for (int k = 0; k < num_of_drives; k++)
 		{
-			int curr = paths[k][timestep].location; // current location
+			int curr = paths[k][timestep+t].location; // current location
 			if (goal_locations[k].empty())
 			{
 				int next = this->gen_next_goal(k);
@@ -228,7 +290,7 @@ void KivaSystem::update_goal_locations()
 					cout << "Agent " << removed_agent << " has to wait for agent " << agent << " because of location " << loc << endl;
 					held_locations[loc] = agent; // this agent has to keep holding this location
 					agent = removed_agent;
-					loc = paths[agent][timestep].location; // another agent's start location
+					loc = paths[agent][timestep+t].location; // another agent's start location
 					it = held_locations.find(loc);
 				}
 				held_locations[loc] = agent;
@@ -256,7 +318,7 @@ void KivaSystem::update_goal_locations()
 					cout << "Agent " << removed_agent << " has to wait for agent " << agent << " because of location " << loc << endl;
 					held_locations[loc] = agent; // this agent has to keep holding its start location
 					agent = removed_agent;
-					loc = paths[agent][timestep].location; // another agent's start location
+					loc = paths[agent][timestep+t].location; // another agent's start location
 					it = held_locations.find(loc);
 				}
 				held_locations[loc] = agent; // this agent has to keep holding its start location
@@ -405,7 +467,7 @@ void KivaSystem::update_goal_locations()
         {
             for (int k = 0; k < num_of_drives; k++)
             {
-                int curr = paths[k][timestep].location; // current location
+                int curr = paths[k][timestep+t].location; // current location
 				tuple<int, int, int> goal; // The last goal location
 				if (goal_locations[k].empty())
 				{
@@ -435,7 +497,7 @@ void KivaSystem::update_goal_locations()
 					else
 					{
 						std::cout << "ERROR in update_goal_function()" << std::endl;
-						std::cout << "The fiducial type should not be " << G.types[curr] << std::endl;
+						std::cout << "The fiducial type at curr="<<curr<<" should not be " << G.types[curr] << std::endl;
 						exit(-1);
 					}
 					goal_locations[k].emplace_back(next);
@@ -672,7 +734,7 @@ json KivaSystem::summarizeResult(){
     std::cout << "Length of longest common path: " << subpath.size()
               << std::endl;
 
-	update_start_locations();
+	update_start_locations(0);
 	std::cout << std::endl
 			  << "Done!" << std::endl;
 	save_results();
@@ -748,19 +810,30 @@ json KivaSystem::summarizeCurrResult(int summarize_interval){
 		goal_locs.push_back(goal_loc);
 	}
 
+	json full_goal_locs = json::array();
+	for (int i=0; i<this->goal_locations.size(); ++i){
+		json full_agent_locs = json::array();
+		for (int j=0; j<this->goal_locations[i].size(); ++j){
+			int goal_loc = std::get<0>(this->goal_locations[i][j]);
+			full_agent_locs.push_back(goal_loc);
+		}
+		full_goal_locs.push_back(full_agent_locs);
+	}
+
 	json result;
 	result["all_paths"] = all_paths;
 	result["full_paths"] = full_paths;
 	result["future_paths"] = future_paths;
 	result["goal_locs"] = goal_locs;
+	result["full_goal_locs"] = full_goal_locs;
 	result["num_tasks_finished"] = this->num_of_tasks;
 	result["done"] = this->timestep >= this->total_sim_time;
 	result["summarize_time"] = summarize_interval;
 	return result;
 }
 
-void KivaSystem::set_total_sim_time(int total_sim_time, int warmup_time){
-	this->total_sim_time = total_sim_time + warmup_time;
+void KivaSystem::set_total_sim_time(int _sim_time, int warmup_time){
+	this->total_sim_time = _sim_time + warmup_time;
 }
 
 json KivaSystem::warmup(int warmup_time){
@@ -776,14 +849,16 @@ json KivaSystem::warmup(int warmup_time){
 
 	int start_timestep = timestep;
 
+	update_start_locations(0);
+	if ((timestep<this->simulation_time) && (timestep<this->total_sim_time)){
+		update_goal_locations(0);
+	}
 	// std::cout << "simulation_win = "<< simulation_window<<std::endl;
 	for (; (timestep<this->simulation_time) && (timestep<this->total_sim_time); timestep += simulation_window)
 	{
 		if (this->screen > 0)
-			std::cout << "Timestep " << timestep << std::endl;
+			std::cout << "Warm up: Timestep " << timestep << std::endl;
 
-		update_start_locations();
-		update_goal_locations();
 		solve();
 
 		// move drives
@@ -811,7 +886,9 @@ json KivaSystem::warmup(int warmup_time){
 		if (this->task_dist_update_interval > 0 && this->timestep % this->task_dist_update_interval == 0){
 			this->update_task_dist();
 		}
-		
+		update_start_locations(simulation_window);
+		update_goal_locations(simulation_window);
+
 		if (congested())
 		{
 			cout << "***** Timestep " << timestep
@@ -840,7 +917,10 @@ json KivaSystem::warmup(int warmup_time){
 
 json KivaSystem::update_gg_and_step(int update_gg_interval){
 	std::cout << "*** Simulating " << seed << " ***" << std::endl;
+	// this->simulation_time = timestep + update_gg_interval;
 	this->simulation_time += update_gg_interval;
+	// std::cout << "simulation time = "<<this->simulation_time << std::endl;
+	
 
 	std::vector<std::vector<int>> tasks_finished_timestep;
 
@@ -848,15 +928,47 @@ json KivaSystem::update_gg_and_step(int update_gg_interval){
 	bool timeout = false;
 
 	int start_timestep = timestep;
+	if (this->screen > 0)
+		std::cout << "Timestep " << timestep << std::endl;
 
 	for (; (timestep<this->simulation_time) && (timestep<this->total_sim_time); timestep += simulation_window)
 	{
 		if (this->screen > 0)
-			std::cout << "Timestep " << timestep << std::endl;
+			std::cout << "Update: Timestep " << timestep << std::endl;
 
-		update_start_locations();
-		update_goal_locations();
+		// std::fstream output;
+		// output.open(outfile + "/detail_before" + std::to_string(timestep+simulation_window) + ".txt", std::ios::out);
+		// for(int k=0; k<this->num_of_drives; ++k){
+		// 	output << "agent "<<k<<std::endl;
+		// 	output << "start: "<<starts[k].location<<std::endl;
+		// 	output << "goal: ";
+		// 	for (int j=0; j<goal_locations[k].size(); ++j){
+		// 		output << std::get<0>(goal_locations[k][j])<<", ";
+		// 	}
+		// 	output << std::endl;
+		// }
+		// output.close();
+
+		// output.open(outfile + "/weights_before" + std::to_string(timestep+simulation_window) + ".txt", std::ios::out);
+		// output << "***weights***" << std::endl;
+        // for (std::vector<double> n : this->G.weights)
+        // {
+        //     for (double w : n)
+        //     {
+        //         output << w << ",";
+        //     }
+        //     output << std::endl;
+        // }
+
+		if (this->screen > 0){
+			std::cout << "solve" <<std::endl;
+		}
 		solve();
+
+
+		if (this->screen > 0){
+			std::cout << "move" << std::endl;
+		}
 
 		// move drives
 		auto new_finished_tasks = move();
@@ -883,6 +995,28 @@ json KivaSystem::update_gg_and_step(int update_gg_interval){
 		if (this->task_dist_update_interval > 0 && this->timestep % this->task_dist_update_interval == 0){
 			this->update_task_dist();
 		}
+
+		// exit(1);
+
+		update_start_locations(simulation_window);
+		if (this->screen > 0){
+			std::cout << "update goal locations" <<std::endl;
+		}
+		update_goal_locations(simulation_window);
+
+		// output.open(outfile + "/detail" + std::to_string(timestep+simulation_window) + ".txt", std::ios::out);
+		// for(int k=0; k<this->num_of_drives; ++k){
+		// 	output << "agent "<<k<<std::endl;
+		// 	output << "start: "<<starts[k].location<<std::endl;
+		// 	output << "goal: ";
+		// 	for (int j=0; j<goal_locations[k].size(); ++j){
+		// 		output << std::get<0>(goal_locations[k][j])<<", ";
+		// 	}
+		// 	output << std::endl;
+		// }
+		// output.close();
+
+		this->save_results();
 
 		if (congested())
 		{
@@ -925,8 +1059,8 @@ json KivaSystem::simulate(int simulation_time)
 		if (this->screen > 0)
 			std::cout << "Timestep " << timestep << std::endl;
 
-		update_start_locations();
-		update_goal_locations();
+		update_start_locations(0);
+		update_goal_locations(0);
 		solve();
 
 		// move drives

@@ -83,7 +83,9 @@ void KivaGrid::infer_sim_mode_from_map(json G_json)
 }
 
 void KivaGrid::parseMap(std::vector<std::vector<double>>& map_e, std::vector<std::vector<double>>& map_w){
-    map_e.resize(this->rows, vector<double>(this->cols, 0));
+    map_e.clear();
+	map_e.resize(this->rows, vector<double>(this->cols, 0));
+	map_w.clear();
     map_w.resize(this->rows, vector<double>(this->cols, 0));
     for (auto e_id: this->endpoints){
         int r = e_id / this->cols;
@@ -106,12 +108,8 @@ void KivaGrid::update_task_dist(std::mt19937& gen, std::string task_dist_type){
 
     this->parseMap(map_e, map_w);
     
-    int num_w = 0;
-    for (const auto& row : map_w) {
-        num_w += count(row.begin(), row.end(), 1.0);
-    }
-
-    this->workstation_weights.resize(num_w, 1.0);
+	this->workstation_weights.clear();
+    this->workstation_weights.resize(this->workstations.size(), 1.0);
     
     int h = this->rows;
     int w = this->cols;
@@ -124,23 +122,23 @@ void KivaGrid::update_task_dist(std::mt19937& gen, std::string task_dist_type){
     std::cout << "gaussian center = "<< center_h <<", " << center_w<<std::endl;
     
     std::vector<std::vector<double>> dist_full = getGaussian(h, w, center_h, center_w);
-    std::vector<std::vector<double>> dist_e(h, std::vector<double>(w, 0));
-    double max_val = 0;
+    // std::vector<std::vector<double>> dist_e(h, std::vector<double>(w, 0));
+    // double max_val = 0;
 
-    for (int r = 0; r < h; ++r) {
-        for (int c = 0; c < w; ++c) {
-            dist_e[r][c] = dist_full[r][c] * map_e[r][c];
-            if (dist_e[r][c] > max_val) max_val = dist_e[r][c];
-        }
-    }
+    // for (int r = 0; r < h; ++r) {
+    //     for (int c = 0; c < w; ++c) {
+    //         dist_e[r][c] = dist_full[r][c] * map_e[r][c];
+    //         if (dist_e[r][c] > max_val) max_val = dist_e[r][c];
+    //     }
+    // }
 
-    for (int r = 0; r < h; ++r) {
-        for (int c = 0; c < w; ++c) {
-            dist_e[r][c] /= max_val; // normalize
-        }
-    }
+    // for (int r = 0; r < h; ++r) {
+    //     for (int c = 0; c < w; ++c) {
+    //         dist_e[r][c] /= max_val; // normalize
+    //     }
+    // }
 
-    this->end_points_weights = generateVecEDist(map_e, dist_e);
+    this->end_points_weights = generateVecEDist(map_e, dist_full);
 }
 
 
@@ -168,6 +166,7 @@ bool KivaGrid::load_unweighted_map_from_json(
 	infer_sim_mode_from_map(G_json);
 
 	this->types.resize(this->rows * this->cols);
+	this->weights.clear();
 	this->weights.resize(this->rows * this->cols);
 	std::string line;
 
@@ -178,6 +177,7 @@ bool KivaGrid::load_unweighted_map_from_json(
 		for (int j = 0; j < this->cols; j++)
 		{
 			int id = this->cols * i + j;
+			this->weights[id].clear();
 			this->weights[id].resize(5, WEIGHT_MAX);
 			if (line[j] == '@') // obstacle
 			{
@@ -308,8 +308,17 @@ void KivaGrid::update_map_weights(bool optimize_wait, std::vector<double> new_we
     {
         for(int i = 0; i < this->rows * this->cols; i++)
         {
+			if (this->weights[i].size()!=5){
+				std::cout << "error weights size at id ["<<i<<"]! weights size should be 5"
+				<<", but actual ="<<this->weights[i].size()<<std::endl;
+				exit(-1);
+			}
             if (this->types[i] != "Obstacle")
             {
+				if (j>=new_weights.size()){
+					std::cout << "j = "<<j<<" exceeds new_weights size "<<new_weights.size()<<std::endl;
+					exit(-1);
+				}
                 this->weights[i][4] = new_weights[j];
                 j += 1;
             }
@@ -324,7 +333,18 @@ void KivaGrid::update_map_weights(bool optimize_wait, std::vector<double> new_we
         // cost of wait.
         for(int i = 0; i < this->rows * this->cols; i++)
         {
-            this->weights[i][4] = new_weights[0];
+			if (this->weights[i].size()!=5){
+				std::cout << "error weights size at id ["<<i<<"]! weights size should be 5"
+				<<", but actual ="<<this->weights[i].size()<<std::endl;
+				exit(-1);
+			}
+			if (this->types[i] != "Obstacle"){
+				if (j>=new_weights.size()){
+					std::cout << "j = "<<j<<" exceeds new_weights size "<<new_weights.size()<<std::endl;
+					exit(-1);
+				}
+            	this->weights[i][4] = new_weights[0];
+			}
         }
         j = 1;
     }
@@ -347,6 +367,10 @@ void KivaGrid::update_map_weights(bool optimize_wait, std::vector<double> new_we
                 get_Manhattan_distance(i, i + this->move[dir]) <= 1 &&
                 this->types[i + this->move[dir]] != "Obstacle")
             {
+				if (j>=new_weights.size()){
+					std::cout << "j = "<<j<<" exceeds new_weights size "<<new_weights.size()<<std::endl;
+					exit(-1);
+				}
                 double curr_weight = new_weights[j];
                 // If the given weight is -1, the corresponding edge should be
                 // blocked.
@@ -708,17 +732,20 @@ void KivaGrid::reset_weights(bool consider_rotation, std::string log_dir, bool o
 	std::cout << "*** reset map weights***" << std::endl;
 	clock_t t = std::clock();
 	this->consider_rotation = consider_rotation;
-	fs::path table_save_path(log_dir);
-	if (consider_rotation)
-		table_save_path /= map_name + "_rotation_heuristics_table.txt";
-	else
-		table_save_path /= map_name + "_heuristics_table.txt";
+	// fs::path table_save_path(log_dir);
+	// if (consider_rotation)
+	// 	table_save_path /= map_name + "_rotation_heuristics_table.txt";
+	// else
+	// 	table_save_path /= map_name + "_heuristics_table.txt";
 	
 	for (auto endpoint : this->endpoints)
 	{
 		this->heuristics[endpoint] = compute_heuristics(endpoint);
+		// std::cout << "endpoint= "<<endpoint<<", h size ="<< this->heuristics[endpoint].size() <<std::endl;
 	}
 
+	std::cout << "after compute h, h size ="<< this->heuristics.size()<<", end points size ="<< this->endpoints.size() <<std::endl;
+	
 	// Under r mode, agent home location is separated from endpoints
 	if(this->r_mode)
 	{
@@ -734,14 +761,15 @@ void KivaGrid::reset_weights(bool consider_rotation, std::string log_dir, bool o
 		for (auto workstation : this->workstations)
 		{
 			this->heuristics[workstation] = compute_heuristics(workstation);
+			// std::cout << "workstation= "<<workstation<<", h size ="<< this->heuristics[workstation].size() <<std::endl;
 		}
 		if (this->heuristics.size() != this->endpoints.size() + this->workstations.size()){
 			std::cout << "error h size!"<<std::endl;
 			exit(1);
 		}
 	}
-	cout << table_save_path << endl;
-	save_heuristics_table(table_save_path.string());
+	// cout << table_save_path << endl;
+	// save_heuristics_table(table_save_path.string());
 	
 
 	double runtime = (std::clock() - t) / CLOCKS_PER_SEC;

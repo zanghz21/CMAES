@@ -563,15 +563,33 @@ void BasicSystem::save_results()
         {
             for (auto p : paths[k])
             {
-                if (p.timestep <= timestep)
+                if (p.timestep <= timestep+simulation_window)
                     output << p << ";";
             }
             output << std::endl;
         }
         output.close();
         saving_time = (double)(std::clock() - t) / CLOCKS_PER_SEC;
+        
+        // weights
+        output.open(outfile + "/map_weights.txt", std::ios::out);
+        output << "***type***" << std::endl;
+        for (std::string t : this->G.types)
+            output << t << ",";
+        output << std::endl;
+
+        output << "***weights***" << std::endl;
+        for (std::vector<double> n : this->G.weights)
+        {
+            for (double w : n)
+            {
+                output << w << ",";
+            }
+            output << std::endl;
+        }
+
         if (screen)
-            std::cout << "Done! (" << saving_time << " s)" << std::endl;
+            std::cout << "Done! (" << saving_time << " s)" << std::endl;        
     }
 }
 
@@ -654,6 +672,7 @@ void BasicSystem::solve()
     else // PBS or ECBS
     {
         // PriorityGraph initial_priorities;
+        // std::cout << "solve, update_initial_constraints" <<std::endl;
         update_initial_constraints(solver.initial_constraints);
 
         // solve
@@ -723,6 +742,7 @@ void BasicSystem::solve()
         }
         else
         {
+            // std::cout << "solve, init real goal" <<std::endl;
             // In the case of manufacture system, we should ignore the first
             // goal of the agent if the agent still doing task in that goal
             // from the previous windowed MAPF run
@@ -741,16 +761,19 @@ void BasicSystem::solve()
                 }
             }
 
+            // std::cout << "solve, solver.run" <<std::endl;
             bool sol = solver.run(
                 starts, real_goal_locations, time_limit, waited_time);
             if (sol)
             {
+                // std::cout << "solve, has sol" <<std::endl;
                 if (log)
                     solver.save_constraints_in_goal_node(outfile + "/goal_nodes/" + std::to_string(timestep) + ".gv");
                 update_paths(solver.solution);
             }
             else
             {
+                // std::cout << "solve, no sol" <<std::endl;
                 lra.resolve_conflicts(solver.solution);
                 update_paths(lra.solution);
             }
@@ -834,8 +857,11 @@ bool BasicSystem::load_records()
     // load paths
     std::ifstream myfile(outfile + "/paths.txt");
 
-    if (!myfile.is_open())
+    if (!myfile.is_open()){
+        std::cout << "not find log file:" <<outfile + "/paths.txt"<<std::endl;
         return false;
+    }
+        
 
     timestep = INT_MAX;
     getline(myfile, line);
@@ -860,11 +886,12 @@ bool BasicSystem::load_records()
             paths[k].emplace_back(loc, time, orientation);
         }
         timestep = min(timestep, paths[k].back().timestep);
+        // std::cout << "timestep for k="<<k<<", "<<timestep<<std::endl;
     }
     myfile.close();
 
     // pick the timestep
-    timestep = int((timestep - 1) / simulation_window) * simulation_window; // int((timestep - 1) / simulation_window) * simulation_window;
+    // timestep = int((timestep - 1) / simulation_window) * simulation_window; // int((timestep - 1) / simulation_window) * simulation_window;
 
     // load tasks
     myfile.open(outfile + "/tasks.txt");
@@ -898,7 +925,13 @@ bool BasicSystem::load_records()
                 goal_locations[k].emplace_back(loc, 0, 0);
             }
         }
+        std::cout << "agent "<<k<<" reload goals"<<std::endl;
+        for(int j=0; j<goal_locations[k].size(); ++j){
+            std::cout << std::get<0>(goal_locations[k][j])<<", ";
+        }
+        std::cout << std::endl;
     }
     myfile.close();
+    // exit(1);
     return true;
 }
