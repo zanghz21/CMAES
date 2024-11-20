@@ -33,7 +33,7 @@ logger = logging.getLogger()
 
 def get_time_str():
     now = datetime.now()
-    time_str = now.strftime('%Y%m%d_%H%M%S')
+    time_str = now.strftime('%y%m%d_%H%M%S')
     return time_str
 
 
@@ -53,7 +53,8 @@ EXP_AGENTS_RUNTIME = {
     "sortation_small": [800],
     "random": [400], 
     "warehouse_small_narrow": [600], 
-    "empty": [400]
+    "empty": [400], 
+    "room": [400]
 }
 
 def get_offline_weights(log_dir):

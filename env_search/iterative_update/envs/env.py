@@ -404,13 +404,23 @@ print("{delimiter1}")
             "curr_wait_costs": self.curr_wait_costs,
             "curr_edge_weights": self.curr_edge_weights,
         }
-
-        return self._gen_obs(result), reward, terminated, truncated, info
+        
+        obs = self._gen_obs(result) # same in off GGO
+        
+        if self.config.has_map_obs:
+            map_obs = self.comp_map.graph.reshape(1, self.comp_map.height, self.comp_map.width).copy()
+            obs = np.concatenate([obs, map_obs], axis=0, dtype=np.float32)
+        
+        return obs, reward, terminated, truncated, info
 
     def reset(self, seed=None, options=None):
         _, info = super().reset(seed=seed, options=options)
         init_result = info["result"]
-        return self._gen_obs(init_result), info
+        obs = self._gen_obs(init_result) # same in off GGO
+        if self.config.has_map_obs:
+            map_obs = self.comp_map.graph.reshape(1, self.comp_map.height, self.comp_map.width).copy()
+            obs = np.concatenate([obs, map_obs], axis=0, dtype=np.float32)
+        return obs, info
 
 
 class WarehouseIterUpdateEnv(IterUpdateEnvBase):

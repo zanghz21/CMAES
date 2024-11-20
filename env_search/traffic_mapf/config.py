@@ -23,7 +23,7 @@ class TrafficMAPFConfig:
     net_type: str = "quad"
     net_input_type: str = "flow"
     past_traffic_interval: int = -1
-    use_cached_nn: bool = False
+    use_cached_nn: bool = True
     default_obst_flow: float = 0.0
     learn_obst_flow: bool = False
     
