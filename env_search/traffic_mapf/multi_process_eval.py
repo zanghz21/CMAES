@@ -44,6 +44,7 @@ EXP_AGENTS={
     "sortation_small": [200, 400, 600, 800, 1000, 1200, 1400],
     "warehouse_large": [2000, 4000, 6000, 8000, 10000, 12000], 
     "warehouse_small_narrow": [200, 300, 400, 500, 600, 700, 800, 900, 1000], 
+    "warehouse_60x100": [200, 600, 1000, 1400, 1800, 2200, 2600, 3000, 3400], 
     "ggo33x36": [200, 300, 400, 500, 600, 700, 800], 
     "random": [100, 200, 300, 400, 500, 600, 700, 800], 
     "empty": [200, 300, 400, 500, 600, 700, 800, 900]
@@ -53,6 +54,7 @@ EXP_AGENTS_RUNTIME = {
     "sortation_small": [800],
     "random": [400], 
     "warehouse_small_narrow": [600], 
+    "warehouse_60x100": [1800],  
     "empty": [400]
 }
 
@@ -198,6 +200,8 @@ def main(log_dir, n_workers, n_evals, is_runtime, all_results_dir, eval_lns=Fals
             exp_name = "warehouse_large" # might be narrow
         elif "narrow" in train_map:
             exp_name = "warehouse_small_narrow"
+        elif "60x100" in train_map:
+            exp_name = "warehouse_60x100"
         else:
             exp_name = "warehouse_small"
     elif "room" in train_map:

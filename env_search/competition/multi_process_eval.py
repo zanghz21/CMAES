@@ -34,13 +34,15 @@ EXP_AGENTS = {
     "room": [100, 200, 300, 400, 500, 600], 
     # "warehouse_small_narrow": [600],
     "warehouse_small_narrow": [200, 300, 400, 500, 600, 700, 800, 900, 1000], 
+    "warehouse_60x100": [200, 600, 1000, 1400, 1800, 2200, 2600, 3000, 3400], 
     "empty": [200, 300, 400, 500, 600, 700, 800, 900]
 }
 
 EXP_AGENTS_RUNTIME = {
     "sortation_small": [800],
     "random": [400], 
-    "warehouse_small_narrow": [600], 
+    "warehouse_small_narrow": [600],
+    "warehouse_60x100": [1800],  
     "empty": [400]
 }
 
@@ -159,6 +161,8 @@ def main(log_dir, n_workers, n_evals, is_runtime, all_results_dir):
         map_type = "room"
     elif "warehouse_small_narrow" in cfg.map_path:
         map_type = "warehouse_small_narrow"
+    elif "warehouse_60x100" in cfg.map_path:
+        map_type = "warehouse_60x100"
     elif "empty" in cfg.map_path:
         map_type = "empty"
     else:
