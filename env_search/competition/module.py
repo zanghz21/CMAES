@@ -35,8 +35,10 @@ from env_search.competition.competition_result import (CompetitionResult,
 from env_search.utils import (MIN_SCORE, competition_obj_types,
                               competition_env_str2number, get_n_valid_edges,
                               get_n_valid_vertices, load_pibt_default_config,
+                              load_wppl_default_config, 
                               single_sim_done, get_project_dir)
 from env_search.utils.logging import get_current_time_str, get_hash_file_name
+from env_search.utils.task_generator import generate_task_and_agent
 from env_search.iterative_update.envs.env import CompetitionIterUpdateEnv, REDUNDANT_COMPETITION_KEYS
 from env_search.iterative_update.envs.online_env import CompetitionOnlineEnv
 from env_search.iterative_update.envs.online_env_new import CompetitionOnlineEnvNew
@@ -173,8 +175,11 @@ print("{delimiter1}")
             eval_id (int): id of evaluation.
         """
         # output = str(eval_logdir / f"id_{map_id}-sim_{eval_id}-seed={sim_seed}")
-
+                
         kwargs = {
+            # "cmd": cmd,
+            "left_w_weight": self.config.left_right_ratio, 
+            "right_w_weight": 1.0, 
             "map_json_path": self.config.map_path,
             "simulation_steps": self.config.simulation_time,
             "gen_random": self.config.gen_random,
@@ -183,14 +188,36 @@ print("{delimiter1}")
             "weights": edge_weights_json,
             "wait_costs": wait_costs_json,
             "plan_time_limit": self.config.plan_time_limit,
+            "task_dist_change_interval": self.config.task_dist_change_interval, 
             "seed": int(sim_seed),
             "preprocess_time_limit": self.config.preprocess_time_limit,
             "file_storage_path": self.config.file_storage_path,
             "task_assignment_strategy": self.config.task_assignment_strategy,
             "num_tasks_reveal": self.config.num_tasks_reveal,
-            "config": load_pibt_default_config(),  # Use PIBT default config
+            "h_update_late": self.config.h_update_late
         }
 
+        if self.config.task_dist_change_interval > 0:
+            kwargs["task_random_type"] = self.config.task_random_type
+        if not self.config.gen_random:
+            file_dir = os.path.join(get_project_dir(), 'run_files', 'gen_task')
+            os.makedirs(file_dir, exist_ok=True)
+            sub_dir_name = get_hash_file_name()
+            task_save_dir = os.path.join(file_dir, sub_dir_name)
+            os.makedirs(task_save_dir, exist_ok=True)
+            
+            generate_task_and_agent(self.config.map_base_path, 
+                total_task_num=100000, num_agents=self.config.num_agents, 
+                save_dir=task_save_dir
+            )
+            
+            kwargs["agents_path"] = os.path.join(task_save_dir, "test.agent")
+            kwargs["tasks_path"] = os.path.join(task_save_dir, "test.task")
+        if self.config.base_algo == "pibt":
+            kwargs["config"] = load_pibt_default_config()
+        elif self.config.base_algo == "wppl":
+            kwargs["config"] = load_wppl_default_config()
+            
         result_json = self._run_sim_single(kwargs,
                                            manually_clean_memory=True,
                                            save_in_disk=True)
@@ -241,19 +268,9 @@ print("{delimiter1}")
         all_throughputs.append(curr_throughput)
         done = False
         while not done:
-            edge_usage_matrix = np.moveaxis(obs[:4], 0, 2)
-            wait_usage_matrix = obs[4]
-            curr_edge_weights_matrix = np.moveaxis(obs[5:9], 0, 2)
-            curr_wait_costs_matrix = obs[9]
-
             # Get update value
             wait_cost_update_vals, edge_weight_update_vals = \
-                update_model.get_update_values(
-                    wait_usage_matrix,
-                    edge_usage_matrix,
-                    curr_wait_costs_matrix,
-                    curr_edge_weights_matrix,
-                )
+                update_model.get_update_values_from_obs(obs)
 
             # Perform update
             obs, imp_throughput, done, _, info = iter_update_env.step(

@@ -28,8 +28,8 @@ class Map:
                 f.readline()
                 self.height = int(f.readline().split()[-1])
                 self.width = int(f.readline().split()[-1])
-                self.graph = np.zeros((self.height, self.width), dtype=np.int)
-                self.full_graph =  np.zeros((self.height, self.width), dtype=np.int)
+                self.graph = np.zeros((self.height, self.width), dtype=int)
+                self.full_graph =  np.zeros((self.height, self.width), dtype=int)
                 # skip the map line
                 f.readline()
                 for row in range(self.height):
