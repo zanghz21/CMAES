@@ -310,8 +310,10 @@ if __name__ == "__main__":
     p.add_argument('--n_evals', type=int, required=True)
     p.add_argument('--is_runtime', action="store_true", default=False)
     p.add_argument('--all_results_dir', type=str, default="../results")
+    p.add_argument('--eval_lns', action="store_true", default=False)
     cfg = p.parse_args()
     
-    main(log_dir=cfg.logdir, n_workers=cfg.n_workers, n_evals=cfg.n_evals, is_runtime=cfg.is_runtime, all_results_dir=cfg.all_results_dir)
+    main(log_dir=cfg.logdir, n_workers=cfg.n_workers, n_evals=cfg.n_evals, is_runtime=cfg.is_runtime, 
+         all_results_dir=cfg.all_results_dir, eval_lns=cfg.eval_lns)
     
     
