@@ -11,6 +11,8 @@ def parse_eval(base_dir, timestr):
                     map_type = "warehouse_large"
                 elif "narrow" in base_dir:
                     map_type = "warehouse_small_narrow"
+                elif "60x100" in base_dir:
+                    map_type = "warehouse_60x100"
                 else:
                     map_type = "warehouse_small"
             break
@@ -23,9 +25,9 @@ def parse_eval(base_dir, timestr):
             print(f"file [{file}] not found!")
             continue
         df = pd.read_csv(file, sep="\t")
-        print(f"base_exp = {base_dir}, ag={ag}, num_exp = {len(df)}, avg tp = {df['tp'].mean()}, std tp = {df['tp'].std()}")
+        print(f"base_exp = {base_dir}, ag={ag}, num_exp = {len(df)}, avg tp = {round(df['tp'].mean(), 3)}, std tp = {round(df['tp'].std(), 3)}")
         if "sim_time" in df.keys():
-            print(f"avg time = {df['sim_time'].mean()}, std time = {df['sim_time'].std()}")
+            print(f"avg time = {round(df['sim_time'].mean(), 3)}, std time = {round(df['sim_time'].std(), 3)}")
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()

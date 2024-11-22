@@ -13,6 +13,8 @@ def parse_eval_results(base_dir, time_str, n_evals):
                     map_type = "warehouse_large"
                 elif "narrow" in base_dir:
                     map_type = "warehouse_small_narrow"
+                elif "60x100" in base_dir:
+                    map_type = "warehouse_60x100"
                 else:
                     map_type = "warehouse_small"
             break
