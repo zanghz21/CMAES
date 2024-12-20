@@ -16,7 +16,11 @@ TrafficMAPFManager.update_model_n_params = 560
 TrafficMAPFConfig.num_agents = 6000
 
 TrafficMAPFConfig.gen_tasks = True
-TrafficMAPFConfig.all_json_path = "../Guided-PIBT/guided-pibt/benchmark-lifelong/ost003d_0_2000.json"
 TrafficMAPFConfig.use_lns = False
 TrafficMAPFConfig.use_cached_nn = True
+
+TrafficMAPFConfig.task_dist_change_interval = 200
+TrafficMAPFConfig.task_random_type = "GaussianMixed"
+TrafficMAPFConfig.task_assignment_strategy = "online_generate"
+
 TrafficMAPFConfig.map_path =  "../Guided-PIBT/guided-pibt/benchmark-lifelong/maps/ost003d.map"
