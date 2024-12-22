@@ -191,6 +191,19 @@ print("{delimiter}")
             obs, imp_throughput, done, _, info = env.step(action)
             curr_result = info["result"]
         return curr_result
+    
+    def evaluate_offline_in_period_on(self, off_action, seed):
+        env = TrafficFlowOnlineEnv(
+            config=self.config, seed=seed
+        )
+        off_action = off_action.reshape(env.comp_map.height, env.comp_map.width, 4)
+        action = np.moveaxis(off_action, 2, 0)
+        obs, info = env.reset()
+        done = False
+        while not done:
+            obs, imp_throughput, done, _, info = env.step(action)
+            curr_result = info["result"]
+        return curr_result
         
     
     def process_eval_result(self, curr_result_json):
