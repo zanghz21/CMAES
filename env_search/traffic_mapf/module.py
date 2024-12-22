@@ -75,6 +75,7 @@ class TrafficMAPFModule:
         delimiter = "[=====delimiter======]"
         simulator_path = "simulators.trafficMAPF_lns" if self.config.use_lns else "simulators.trafficMAPF"
         
+        # Trick to avoid mem leak issue of the cpp simulator
         if save_in_disk:
             file_path = generate_hash_file_path()
             with open(file_path, 'w') as f:
@@ -151,6 +152,7 @@ print("{delimiter}")
         return collect_results
     
     def evaluate_offline(self, model_params, seed):
+        '''off+GPIBT, PIU, similar logic to off+PIBT'''
         env = TrafficFlowOfflineEnv(
             cfg=self.config, seed=seed
         )
@@ -172,6 +174,7 @@ print("{delimiter}")
         return curr_result
     
     def evaluate_period_online(self, model_params, seed):
+        '''[p-on]+GPIBT'''
         env = TrafficFlowOnlineEnv(
             config=self.config, seed=seed
         )

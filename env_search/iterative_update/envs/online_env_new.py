@@ -59,6 +59,12 @@ class CompetitionOnlineEnvNew:
             self.move_hists.append(agent_path.replace(",", ""))
     
     def update_paths(self, agents_paths):
+        '''
+        update self.move_hists and self.pos_hists
+        - agents_paths: List[str]
+            - e.g. ["R,W,W,U,D", "L,D,D,W,R]
+            - R: right, D: down, L: left, U: up, W: wait
+        '''
         for agent_moves, agent_new_paths in zip(self.move_hists, agents_paths):
             for s in agent_new_paths:
                 if s == ",":
@@ -136,28 +142,23 @@ class CompetitionOnlineEnvNew:
         else:
             time_range = min(self.config.past_traffic_interval, self.config.warmup_time)
         
-        # print("time range =", time_range)
         for t in range(time_range):
             for agent_i in range(self.config.num_agents):
                 prev_x, prev_y = self.pos_hists[agent_i][-(time_range+1-t)]
-                # cur_x, cur_y = self.pos_hists[agent_i][-(self.config.past_traffic_interval-t)]
-                # print(prev_x, prev_y)
                 
                 move = self.move_hists[agent_i][-(time_range-t)]
                 id = DIRECTION2ID[move]
                 if id < 4:
                     edge_usage[id, prev_x, prev_y] += 1
                 else:
-                    # if env.i > 0:
-                    #     print(prev_x, prev_y)
                     wait_usage[0, prev_x, prev_y] += 1
-        # print("max", wait_usage.max(), wait_usage.argmax(), edge_usage.max(), edge_usage.argmax())
+        
+        # If not for visualization, we normalize the raw observation by the sum
         if not vis:
             if wait_usage.sum() != 0:
                 wait_usage = wait_usage/wait_usage.sum() * 100
             if edge_usage.sum() != 0:
                 edge_usage = edge_usage/edge_usage.sum() * 100
-        # print("new, wait_usage:", wait_usage.max(), "edge_usage:", edge_usage.max())
         return wait_usage, edge_usage
 
     def _gen_v_usage(self, is_init=False):
@@ -182,11 +183,17 @@ class CompetitionOnlineEnvNew:
             x = goal_id // w
             y = goal_id % w
             task_usage[0, x, y] += 1
+        
+        # normalized by sum
         if task_usage.sum()!=0:
             task_usage = task_usage/task_usage.sum() * 10
         return task_usage
         
     def _gen_curr_pos_obs(self, result):
+        '''
+        - return relative postion between current pos and goal pos for all agent
+        - note that at each timestep, each loc on the map has at most one agent
+        '''
         h, w = self.comp_map.graph.shape
         pos_usage = np.zeros((2, h, w))
         for aid, (curr_id, goal_id) in enumerate(zip(result["final_pos"], result["final_tasks"])):
@@ -220,31 +227,42 @@ class CompetitionOnlineEnvNew:
     def _gen_obs(self, result, is_init=False):
         h, w = self.comp_map.height, self.comp_map.width
         obs = np.zeros((0, h, w))
+        
+        # graph edge usage (include self-edges)
         if self.config.has_traffic_obs:
             wait_usage_matrix, edge_usage_matrix = self._gen_traffic_obs_new(is_init)
             traffic_obs = np.concatenate([edge_usage_matrix, wait_usage_matrix], axis=0, dtype=np.float32)
             obs = np.concatenate([obs, traffic_obs], axis=0, dtype=np.float32)
             
+        # current guidance graph weights
         if self.config.has_gg_obs:
             gg_obs = self._gen_gg_obs()
             obs = np.concatenate([obs, gg_obs], axis=0, dtype=np.float32)
-            
+
+        # graph edge usage in future steps (Not support all algos yet)
         if self.config.has_future_obs:
             exec_future_usage, plan_future_usage = self._gen_future_obs(result)
             obs = np.concatenate([obs, exec_future_usage+plan_future_usage], axis=0, dtype=np.float32)
+            
+        # current task
         if self.config.has_task_obs:
             task_obs = self._gen_task_obs(result)
             obs = np.concatenate([obs, task_obs], axis=0, dtype=np.float32)
+            
+        # current agents' location
         if self.config.has_curr_pos_obs:
             curr_pos_obs = self._gen_curr_pos_obs(result)
             obs = np.concatenate([obs, curr_pos_obs], axis=0, dtype=np.float32)
+            
+        # map
         if self.config.has_map_obs:
             obs = np.concatenate([obs, self.comp_map.graph.reshape(1, h, w)], axis=0, dtype=np.float32)
         return obs
 
             
     def get_base_kwargs(self, save_paths=False):
-        # TODO: SEED!!!
+        '''generate base kwargs for cpp simulator'''
+        
         kwargs = {
             "left_w_weight": self.config.left_right_ratio, 
             "right_w_weight": 1.0, 
@@ -267,6 +285,9 @@ class CompetitionOnlineEnvNew:
             "dist_K": self.config.dist_K, 
             "save_paths": save_paths
         }
+        
+        # By default, self.config.gen_random = True, all tasks are generated in cpp simulator.
+        # If set False, task is generated here.
         if not self.config.gen_random:
             file_dir = os.path.join(get_project_dir(), 'run_files', 'gen_task')
             os.makedirs(file_dir, exist_ok=True)
@@ -281,10 +302,14 @@ class CompetitionOnlineEnvNew:
             
             kwargs["agents_path"] = os.path.join(self.task_save_dir, "test.agent")
             kwargs["tasks_path"] = os.path.join(self.task_save_dir, "test.task")
+        
+        # If task_dist_change_interval < 0, it is uniform task distribution by default
         if self.config.task_dist_change_interval > 0:
             kwargs["task_random_type"] = self.config.task_random_type
+        
         if self.config.base_algo == "pibt":
             if self.config.has_future_obs:
+                # use pibt to generate paths for [n_future] steps
                 kwargs["config"] = load_w_pibt_default_config()
             else:
                 kwargs["config"] = load_pibt_default_config()
@@ -314,10 +339,6 @@ class CompetitionOnlineEnvNew:
                                              self.ub).tolist()
             wait_costs = min_max_normalize(self.curr_wait_costs, self.lb,
                                            self.ub).tolist()
-        
-        # kwargs = self.get_base_kwargs()
-        # kwargs["weights"] = json.dumps(edge_weights)
-        # kwargs["wait_costs"] = json.dumps(wait_costs)
 
         result_str = self.simulator.update_gg_and_step(edge_weights, wait_costs)
         result = json.loads(result_str)
@@ -344,13 +365,12 @@ class CompetitionOnlineEnvNew:
         
     
     def step(self, action):
+        '''action: List[float], (self-edge weights) + (other edge weights)'''
         self.i += 1  # increment timestep
-        # print(f"[step={self.i}]")
-        # The environment is fully observable, so the observation is the
-        # current edge weights/wait costs
+        
         wait_cost_update_vals = action[:self.n_valid_vertices]
         edge_weight_update_vals = action[self.n_valid_vertices:]
-        self.curr_wait_costs = wait_cost_update_vals
+        self.curr_wait_costs = wait_cost_update_vals # raw weights w/o normalization, possibly < 0
         self.curr_edge_weights = edge_weight_update_vals
 
         result = self._run_sim()
@@ -369,6 +389,7 @@ class CompetitionOnlineEnvNew:
         truncated = terminated
         if terminated or truncated:
             if not self.config.gen_random:
+                # rm files of generated tasks
                 if os.path.exists(self.task_save_dir):
                     shutil.rmtree(self.task_save_dir)
                 else:
@@ -396,17 +417,17 @@ class CompetitionOnlineEnvNew:
         self.num_task_finished = 0
         self.left_timesteps = self.config.simulation_time
         self.last_agent_pos = None
-        # self.last_tasks = None
         
         self.starts = None
         self.task_save_dir = None
         
-        self.pos_hists = [[] for _ in range(self.config.num_agents)]
-        self.move_hists = [[] for _ in range(self.config.num_agents)]
+        self.pos_hists = [[] for _ in range(self.config.num_agents)] # record vertex history
+        self.move_hists = [[] for _ in range(self.config.num_agents)] # record edge history
         
         self.last_wait_usage = np.zeros(np.prod(self.comp_map.graph.shape))
         self.last_edge_usage = np.zeros(4*np.prod(self.comp_map.graph.shape))
         
+        # If no particular specification, we use uniform weights in warmup phase
         if self.config.reset_weights_path is None:
             self.curr_edge_weights = np.ones(self.n_valid_edges)
             self.curr_wait_costs = np.ones(self.n_valid_vertices)
@@ -417,19 +438,31 @@ class CompetitionOnlineEnvNew:
             self.curr_wait_costs = np.array(weights[:self.n_valid_vertices])
             self.curr_edge_weights = np.array(weights[self.n_valid_vertices:])
             
+        # save detailed running meta data
+        # It is used to generate the num-agents-reach-goals per timestep
         if options is not None:
             save_paths = options.get("save_paths", False)
         else:
             save_paths = False
+        
         kwargs = self.get_base_kwargs(save_paths)
-        kwargs["weights"] = json.dumps(self.curr_edge_weights.tolist())
-        kwargs["wait_costs"] = json.dumps(self.curr_wait_costs.tolist())
+        
+        # add initial guidance graph weights
+        kwargs["weights"] = json.dumps(self.curr_edge_weights.tolist()) # weights except for self-edges
+        kwargs["wait_costs"] = json.dumps(self.curr_wait_costs.tolist()) # self-edge weights
+        
+        # initialize cpp simulator
         self.simulator = py_sim(**kwargs)
+        
+        # run [n_warmup] steps to generate the initial obs
         result_str = self.simulator.warmup()
         result = json.loads(result_str)
+        
+        # update agents path info
         self.starts = result["starts"]
         self.update_paths(result["actual_paths"])
 
+        # generate obs
         obs = self._gen_obs(result, is_init=True)
         info = {"result": {}}
         return obs, info

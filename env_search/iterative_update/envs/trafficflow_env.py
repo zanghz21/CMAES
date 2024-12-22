@@ -44,9 +44,7 @@ def generate_hash_file_path():
 
 
 class TrafficFlowOfflineEnv(gym.Env):
-    """Iterative update env base."""
-
-    metadata = {"render_modes": ["human"], "render_fps": 30}
+    """Env for off+GPIBT"""
 
     def __init__(
         self,
@@ -98,13 +96,14 @@ class TrafficFlowOfflineEnv(gym.Env):
         else:
             map_weights = min_max_normalize(self.raw_weights, 0.1, 100)
         kwargs["map_weights"] = json.dumps(map_weights.flatten().tolist())
-        # print(kwargs)
+        
         delimiter = "[=====delimiter======]"
         if not self.config.use_lns:
             simulator_path = "simulators.trafficMAPF_off"
         else:
             simulator_path = "simulators.trafficMAPF_off_lns"
         
+        # Trick to avoid mem leak issue of the cpp simulator
         if save_in_disk:
             file_path = generate_hash_file_path()
             with open(file_path, 'w') as f:

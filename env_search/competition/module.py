@@ -458,6 +458,7 @@ print("{delimiter1}")
         if env_type == "new":
             env_cls = CompetitionOnlineEnvNew
         elif env_type == "old":
+            print("Warning: CompetitionOnlineEnv is deprecated. It is recommended to use CompetitionOnlineEnvNew instead. ")
             env_cls = CompetitionOnlineEnv
         else:
             raise NotImplementedError

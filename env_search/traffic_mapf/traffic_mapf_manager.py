@@ -16,6 +16,9 @@ logger = logging.getLogger(__name__)
 
 @gin.configurable(denylist=["client", "rng"])
 class TrafficMAPFManager:
+    '''
+    GPIBT-based guidance graph and guidance policy optimization framework
+    '''
     def __init__(self, 
                  client: Client, 
                  logdir: LogDir, 
@@ -68,11 +71,11 @@ class TrafficMAPFManager:
         all_seeds = evaluation_seeds
         
         assert not (self.offline and self.period_online)
-        if not self.offline and not self.period_online:
+        if not self.offline and not self.period_online: # on+GPIBT
             run_func = run_traffic_mapf
-        elif self.offline:
+        elif self.offline: # off+GPIBT
             run_func = run_traffic_mapf_offline
-        elif self.period_online:
+        elif self.period_online: # [p-on]+GPIBT
             run_func = run_traffic_mapf_period_online
         else:
             raise NotImplementedError
@@ -88,11 +91,6 @@ class TrafficMAPFManager:
         logger.info("Collecting evaluations")
         results = self.client.gather(sim_futures)
         self.sim_runtime += time.time() - sim_start_time
-        
-        # results_json = []
-        # for i in range(n_sols):
-        #     result_json = results[i]
-        #     results_json.append(result_json)
         
         results_json_sorted = []
         for i in range(n_sols):
