@@ -23,6 +23,7 @@ DIRECTION2ID = {
 }
 
 class TrafficFlowOnlineEnv:
+    '''Env for [p-on]+GPIBT'''
     def __init__(
         self,
         config: TrafficMAPFConfig,
@@ -167,11 +168,14 @@ class TrafficFlowOnlineEnv:
     def _gen_obs(self, result, is_init=False):
         h, w = self.comp_map.height, self.comp_map.width
         obs = np.zeros((0, h, w))
+        
+        # past edge usage, including self-edges
         if self.config.has_traffic_obs:
             wait_usage_matrix, edge_usage_matrix = self._gen_traffic_obs(is_init)
             traffic_obs = np.concatenate([edge_usage_matrix, wait_usage_matrix], axis=0, dtype=np.float32)
             obs = np.concatenate([obs, traffic_obs], axis=0, dtype=np.float32)
             
+        # guidance graph
         if self.config.has_gg_obs:
             wait_costs = min_max_normalize(self.curr_wait_costs, 0.1, 1)
             edge_weights = min_max_normalize(self.curr_edge_weights, 0.1, 1)
@@ -191,12 +195,17 @@ class TrafficFlowOnlineEnv:
         # if self.config.has_future_obs:
         #     exec_future_usage, plan_future_usage = self._gen_future_obs(result)
         #     obs = np.concatenate([obs, exec_future_usage+plan_future_usage], axis=0, dtype=np.float32)
+        
+        # current task loc
         if self.config.has_task_obs:
             task_obs = self._gen_task_obs(result)
             obs = np.concatenate([obs, task_obs], axis=0, dtype=np.float32)
+        
         # if self.config.has_curr_pos_obs:
         #     curr_pos_obs = self._gen_curr_pos_obs(result)
         #     obs = np.concatenate([obs, curr_pos_obs], axis=0, dtype=np.float32)
+        
+        # current map obs
         if self.config.has_map_obs:
             obs = np.concatenate([obs, self.comp_map.graph.reshape(1, h, w)], dtype=np.float32)
         return obs
@@ -247,6 +256,9 @@ class TrafficFlowOnlineEnv:
 
     
     def step(self, action):
+        '''
+        action: [4, h, w]
+        '''
         self.i += 1  # increment timestep
         
         _action = action * (1-self.comp_map.graph)
@@ -284,9 +296,10 @@ class TrafficFlowOnlineEnv:
         
         self.starts = None
         
-        self.pos_hists = [[] for _ in range(self.config.num_agents)]
-        self.move_hists = [[] for _ in range(self.config.num_agents)]
+        self.pos_hists = [[] for _ in range(self.config.num_agents)] # record vertex history
+        self.move_hists = [[] for _ in range(self.config.num_agents)] # record edge history
 
+        # By default, we use uniform weights for warmup phase
         if self.config.reset_weights_path is None:
             self.curr_weights = np.ones((self.comp_map.height, self.comp_map.width, 4))
         else:
@@ -297,10 +310,13 @@ class TrafficFlowOnlineEnv:
             
         kwargs = self.gen_sim_kwargs()
         kwargs["map_weights"] = json.dumps(self.curr_weights.flatten().tolist())
+        
+        # initialize cpp simulator
         self.simulator = period_on_sim(**kwargs)
         result_str = self.simulator.warmup()
         result = json.loads(result_str)
-        self.starts = result["start"]
+        
+        self.starts = result["start"] # agent start locations
         self.update_paths(result["actual_paths"])
 
         obs = self._gen_obs(result, is_init=True)

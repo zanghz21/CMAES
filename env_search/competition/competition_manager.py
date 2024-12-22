@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 @gin.configurable(denylist=["client", "rng"])
 class CompetitionManager:
-    """Manager for the competition environments.
+    """Manager for the PIBT-based algorithms optimization.
 
     Args:
         client: Dask client for distributed compute.
@@ -350,7 +350,7 @@ class CompetitionManager:
                 )
             ]
             results = self.client.gather(process_futures)
-        elif not self.online_update:
+        elif not self.online_update: # off+PIBT, PIU
             assert self.optimize_wait
             # Otherwise, evaluate using iterative update func
             iter_update_sols = unrepaired_sols
@@ -393,7 +393,7 @@ class CompetitionManager:
                 ) for (curr_result_json, map_id) in zip(results_json, map_ids)
             ]
             results = self.client.gather(process_futures)
-        else: # online upate
+        else: # on+PIBT
             evaluation_seeds = self.rng.integers(np.iinfo(np.int32).max / 2,
                                                  size=n_sols*self.n_evals,
                                                  endpoint=True)
@@ -402,7 +402,6 @@ class CompetitionManager:
             eval_logdir = self.logdir.pdir(
                 f"evaluations/eval_batch_{batch_idx}")
             sim_start_time = time.time()
-            # TODO: 改成多个 random seed
             sim_futures = [
                 self.client.submit(
                     run_competition_online_update,
@@ -417,15 +416,8 @@ class CompetitionManager:
             results_and_weights = self.client.gather(sim_futures)
             self.sim_runtime += time.time() - sim_start_time
             
-            # results_json = []
-            # all_weights = []
-            # for i in range(n_sols):
-            #     result_json, curr_all_weights = results_and_weights[i]
-            #     results_json.append(result_json)
-            #     all_weights.append(curr_all_weights)
             results_json_sorted = []
             eval_all_weights_sorted = []
-            # print(len(results_and_weights), n_sols, self.n_evals)
             for i in range(n_sols):
                 eval_results = []
                 eval_all_weights = []
