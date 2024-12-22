@@ -367,52 +367,7 @@ def tile_usage_heatmap_from_qd(
                     figsize=get_figsize_qd(w_mode, domain),
                     gridspec_kw=grid_kws,
                 )
-
-                # if domain == "kiva":
-                #     repaired_env = kiva_env_str2number(map_str)
-                #     visualize_kiva(repaired_env, ax=ax_map, dpi=300)
-                # elif domain == "competition":
-                #     visualize_competition(competition_env_str2number(map_str),
-                #                           ax=ax_map,
-                #                           dpi=300)
-
-                tile_usage = np.array(metadata["tile_usage"])
-                if domain == "kiva":
-                    env_h = gin.query_parameter("WarehouseManager.lvl_height")
-                    env_w = gin.query_parameter("WarehouseManager.lvl_width")
-                    # ADDITION_BLOCK_WIDTH = KIVA_WORKSTATION_BLOCK_WIDTH if w_mode else KIVA_ROBOT_BLOCK_WIDTH
-                    # ADDITION_BLOCK_HEIGHT = 0 if w_mode else KIVA_ROBOT_BLOCK_HEIGHT
-                    # env_w += 2 * ADDITION_BLOCK_WIDTH
-                    # env_h += 2 * ADDITION_BLOCK_HEIGHT
-                elif domain == "competition":
-                    env_h = gin.query_parameter("CompetitionManager.lvl_height")
-                    env_w = gin.query_parameter("CompetitionManager.lvl_width")
-                if len(tile_usage.shape) == 1:
-                    tile_usage = tile_usage[np.newaxis, ...]
-
-                # mkdir for tileusage
-                tile_usage_dir = logdir.dir("tile_usages")
-
-                for i in range(tile_usage.shape[0]):
-                    curr_tile_usage = tile_usage[i]
-                    plot_tile_usage(
-                        curr_tile_usage,
-                        env_h,
-                        env_w,
-                        fig,
-                        ax_tile_use,
-                        ax_tile_use_cbar,
-                        logdir,
-                        filenames=[
-                            f"tile_usage/{index_0}_{index_1}-{i}.pdf",
-                            f"tile_usage/{index_0}_{index_1}-{i}.svg",
-                            f"tile_usage/{index_0}_{index_1}-{i}.png",
-                        ],
-                        dpi=dpi,
-                    )
-
-                plt.close('all')
-
+                
 
 def main(
     logdir: str,

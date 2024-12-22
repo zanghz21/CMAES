@@ -132,15 +132,17 @@ class CompetitionOnlineEnvNew:
         return exec_future_usage, plan_future_usage
         
         
-    def _gen_traffic_obs_new(self, is_init=False, vis=False):
+    def _gen_traffic_obs_new(self, past_traffic_interval=None, is_init=False, vis=False):
         h, w = self.comp_map.graph.shape
         edge_usage = np.zeros((4, h, w))
         wait_usage = np.zeros((1, h, w))
         
+        if past_traffic_interval is None:
+            past_traffic_interval = self.config.past_traffic_interval
         if not is_init:
-            time_range = min(self.config.past_traffic_interval, self.config.simulation_time-self.left_timesteps)
+            time_range = min(past_traffic_interval, self.config.simulation_time-self.left_timesteps)
         else:
-            time_range = min(self.config.past_traffic_interval, self.config.warmup_time)
+            time_range = min(past_traffic_interval, self.config.warmup_time)
         
         for t in range(time_range):
             for agent_i in range(self.config.num_agents):
@@ -161,14 +163,16 @@ class CompetitionOnlineEnvNew:
                 edge_usage = edge_usage/edge_usage.sum() * 100
         return wait_usage, edge_usage
 
-    def _gen_v_usage(self, is_init=False):
+    def _gen_v_usage(self, past_traffic_interval=None, is_init=False):
         h, w = self.comp_map.graph.shape
         v_usage = np.zeros((h, w))
         
+        if past_traffic_interval is None:
+            past_traffic_interval = self.config.past_traffic_interval
         if not is_init:
-            time_range = min(self.config.past_traffic_interval, self.config.simulation_time-self.left_timesteps)
+            time_range = min(past_traffic_interval, self.config.simulation_time-self.left_timesteps)
         else:
-            time_range = min(self.config.past_traffic_interval, self.config.warmup_time)
+            time_range = min(past_traffic_interval, self.config.warmup_time)
         
         for t in range(time_range):
             for agent_i in range(self.config.num_agents):

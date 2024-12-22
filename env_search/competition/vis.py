@@ -186,7 +186,7 @@ def vis_direction(gg_obs, name="test", save_dir=None):
     plt.scatter(bx_list, by_list, color='black', marker="s")
     fig.tight_layout()
     plt.savefig(os.path.join(save_dir, f"{name}.png"), dpi=300)
-    print(os.path.join(save_dir, f"{name}.png"))
+    # print(os.path.join(save_dir, f"{name}.png"))
     plt.close()
 
 
@@ -267,7 +267,7 @@ def base_online_exp(cfg: CompetitionConfig, model_params, log_dir, seed=0, vis=F
         if vis_only_final:
             vis_arr(cumulative_wait, name="cumulative_wait", save_dir=vis_logdir, v_max=cfg.simulation_time)
     
-    print(info["result"]["throughput"])
+    # print(info["result"]["throughput"])
     if save_files:
         res_file_path = os.path.join(log_dir, f"results_{seed}.json")
         shutil.copy("large_files_new/results.json", res_file_path)
@@ -317,7 +317,7 @@ def base_offline_exp(cfg: CompetitionConfig, log_dir, seed=0, vis=False, save_fi
     obs, info = env.reset(options={"save_paths": save_files})
     done = False
     while not done:
-        print("action", optimal_weights.min(), optimal_weights.argmin(), optimal_weights.max(), optimal_weights.argmax())
+        # print("action", optimal_weights.min(), optimal_weights.argmin(), optimal_weights.max(), optimal_weights.argmax())
         obs, rew, terminated, truncated, info = env.step(optimal_weights)
         if vis and not vis_only_final:
             # env.config.past_traffic_interval = 1000
